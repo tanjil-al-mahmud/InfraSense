@@ -1,6 +1,6 @@
 # InfraSense - Hybrid Infrastructure Monitoring Platform
 
-Monitor all your servers, UPS devices, and virtualization platforms from a single dashboard.
+Monitor all your servers using Redfish API, IPMI, SNMP with single dashboard.
 
 ## Quick Start - Windows
 git clone https://github.com/tanjil-al-mahmud/infrasense.git
