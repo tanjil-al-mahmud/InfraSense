@@ -1,0 +1,177 @@
+#!/bin/bash
+set -e
+
+#DEBHELPER#
+
+case "$1" in
+    configure)
+        # ----------------------------------------------------------------
+        # 1. Create infrasense system user and group
+        # ----------------------------------------------------------------
+        if ! getent group infrasense > /dev/null 2>&1; then
+            groupadd --system infrasense
+        fi
+
+        if ! getent passwd infrasense > /dev/null 2>&1; then
+            useradd \
+                --system \
+                --no-create-home \
+                --shell /usr/sbin/nologin \
+                --gid infrasense \
+                infrasense
+        fi
+
+        # ----------------------------------------------------------------
+        # 2. Create required directories with proper ownership
+        # ----------------------------------------------------------------
+        for dir in /var/lib/infrasense /var/log/infrasense /etc/infrasense; do
+            if [ ! -d "$dir" ]; then
+                mkdir -p "$dir"
+            fi
+            chown infrasense:infrasense "$dir"
+            chmod 750 "$dir"
+        done
+
+        # ----------------------------------------------------------------
+        # 3. Initialize PostgreSQL database
+        # ----------------------------------------------------------------
+        if command -v psql > /dev/null 2>&1; then
+            # Create the infrasense PostgreSQL role if it does not exist
+            if ! sudo -u postgres psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='infrasense'" | grep -q 1; then
+                DB_PASSWORD=$(openssl rand -base64 24)
+                sudo -u postgres psql -c "CREATE USER infrasense WITH PASSWORD '${DB_PASSWORD}';"
+                # Persist the generated DB password to the config directory
+                echo "DB_PASSWORD=${DB_PASSWORD}" > /etc/infrasense/.db_credentials
+                chmod 600 /etc/infrasense/.db_credentials
+                chown infrasense:infrasense /etc/infrasense/.db_credentials
+            fi
+
+            # Create the infrasense database if it does not exist
+            if ! sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='infrasense'" | grep -q 1; then
+                sudo -u postgres psql -c "CREATE DATABASE infrasense OWNER infrasense;"
+            fi
+
+            # Grant all privileges
+            sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE infrasense TO infrasense;"
+        else
+            echo "WARNING: psql not found. Skipping PostgreSQL initialisation." >&2
+            echo "         Please initialise the database manually before starting InfraSense." >&2
+        fi
+
+        # ----------------------------------------------------------------
+        # 4. Run database migrations
+        # ----------------------------------------------------------------
+        MIGRATIONS_DIR=/usr/local/share/infrasense/migrations
+
+        if [ -x /usr/local/bin/infrasense-backend ]; then
+            # Load DB credentials if they were written above
+            if [ -f /etc/infrasense/.db_credentials ]; then
+                . /etc/infrasense/.db_credentials
+            fi
+
+            DB_URL="postgres://infrasense:${DB_PASSWORD:-}@localhost:5432/infrasense?sslmode=disable"
+
+            if [ -d "$MIGRATIONS_DIR" ]; then
+                /usr/local/bin/infrasense-backend migrate \
+                    --db-url "$DB_URL" \
+                    --migrations-dir "$MIGRATIONS_DIR" \
+                    || echo "WARNING: Database migration failed. Please run migrations manually." >&2
+            elif command -v migrate > /dev/null 2>&1; then
+                migrate -path "$MIGRATIONS_DIR" -database "$DB_URL" up \
+                    || echo "WARNING: Database migration failed. Please run migrations manually." >&2
+            else
+                echo "WARNING: No migration tool found. Please run database migrations manually." >&2
+            fi
+        else
+            echo "WARNING: infrasense-backend binary not found. Skipping migrations." >&2
+        fi
+
+        # ----------------------------------------------------------------
+        # 5. Create default admin user with a randomly generated password
+        # ----------------------------------------------------------------
+        ADMIN_PASSWORD=$(openssl rand -base64 16 | tr -dc 'A-Za-z0-9' | head -c 20)
+
+        if [ -x /usr/local/bin/infrasense-backend ]; then
+            /usr/local/bin/infrasense-backend create-admin \
+                --username admin \
+                --password "${ADMIN_PASSWORD}" \
+                --email "admin@infrasense.local" \
+                2>/dev/null \
+                || true
+        elif command -v psql > /dev/null 2>&1; then
+            # Fallback: insert admin user directly via SQL using a bcrypt hash
+            BCRYPT_HASH=$(python3 -c "import bcrypt; print(bcrypt.hashpw('${ADMIN_PASSWORD}'.encode(), bcrypt.gensalt(rounds=12)).decode())" 2>/dev/null || true)
+            if [ -n "$BCRYPT_HASH" ]; then
+                sudo -u postgres psql infrasense -c \
+                    "INSERT INTO users (username, password_hash, email, role, created_at, updated_at)
+                     VALUES ('admin', '${BCRYPT_HASH}', 'admin@infrasense.local', 'admin', NOW(), NOW())
+                     ON CONFLICT (username) DO NOTHING;" 2>/dev/null || true
+            fi
+        fi
+
+        # Persist admin credentials for display at the end of installation
+        echo "ADMIN_PASSWORD=${ADMIN_PASSWORD}" > /etc/infrasense/.admin_credentials
+        chmod 600 /etc/infrasense/.admin_credentials
+        chown root:root /etc/infrasense/.admin_credentials
+
+        # ----------------------------------------------------------------
+        # 6. Enable and start all InfraSense systemd services
+        # ----------------------------------------------------------------
+        SERVICES="
+            infrasense-backend
+            infrasense-ipmi-collector
+            infrasense-redfish-collector
+            infrasense-snmp-collector
+            infrasense-proxmox-collector
+            infrasense-notification-service
+            infrasense-frontend
+        "
+
+        if command -v systemctl > /dev/null 2>&1; then
+            systemctl daemon-reload
+
+            for svc in $SERVICES; do
+                if systemctl list-unit-files "${svc}.service" > /dev/null 2>&1; then
+                    systemctl enable "${svc}.service" || true
+                    systemctl start  "${svc}.service" || true
+                fi
+            done
+        else
+            echo "WARNING: systemctl not found. Services were not started automatically." >&2
+            echo "         Please start InfraSense services manually." >&2
+        fi
+
+        # ----------------------------------------------------------------
+        # 7. Print installation success message
+        # ----------------------------------------------------------------
+        echo ""
+        echo "============================================================"
+        echo "  InfraSense Platform installed successfully!"
+        echo "============================================================"
+        echo ""
+        echo "  Access URL : http://localhost"
+        echo ""
+        echo "  Admin credentials"
+        echo "    Username : admin"
+        echo "    Password : ${ADMIN_PASSWORD}"
+        echo ""
+        echo "  IMPORTANT: Save these credentials now."
+        echo "  They are also stored in /etc/infrasense/.admin_credentials"
+        echo ""
+        echo "  To check service status:"
+        echo "    systemctl status infrasense-backend"
+        echo ""
+        echo "============================================================"
+        echo ""
+    ;;
+
+    abort-upgrade|abort-remove|abort-deconfigure)
+    ;;
+
+    *)
+        echo "postinst called with unknown argument: '$1'" >&2
+        exit 1
+    ;;
+esac
+
+exit 0

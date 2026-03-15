@@ -1,0 +1,28 @@
+[Unit]
+Description=InfraSense Notification Service
+Documentation=https://github.com/infrasense/infrasense-platform
+After=network.target network-online.target postgresql.service infrasense-api.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=infrasense
+Group=infrasense
+ExecStart=/usr/local/bin/infrasense-notification-service
+EnvironmentFile=-/etc/infrasense/infrasense-notification-service.env
+Restart=on-failure
+RestartSec=10s
+TimeoutStartSec=30s
+TimeoutStopSec=30s
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=infrasense-notification-service
+
+# Security hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/infrasense /var/log/infrasense
+
+[Install]
+WantedBy=multi-user.target

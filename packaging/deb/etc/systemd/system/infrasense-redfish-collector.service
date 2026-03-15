@@ -1,0 +1,17 @@
+[Unit]
+Description=InfraSense Redfish Collector
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=infrasense
+Group=infrasense
+ExecStart=/usr/local/bin/infrasense-redfish-collector
+EnvironmentFile=-/etc/infrasense/infrasense-redfish-collector.env
+Restart=always
+RestartSec=10s
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

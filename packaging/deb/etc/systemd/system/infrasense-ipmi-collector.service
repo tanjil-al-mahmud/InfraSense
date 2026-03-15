@@ -1,0 +1,17 @@
+[Unit]
+Description=InfraSense IPMI Collector
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=infrasense
+Group=infrasense
+ExecStart=/usr/local/bin/infrasense-ipmi-collector
+EnvironmentFile=-/etc/infrasense/infrasense-ipmi-collector.env
+Restart=always
+RestartSec=10s
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

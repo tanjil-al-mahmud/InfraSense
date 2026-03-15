@@ -1,0 +1,29 @@
+database:
+  host: "localhost"
+  port: 5432
+  database: "infrasense"
+  user: "infrasense"
+  password: "changeme"
+  ssl_mode: "disable"
+
+# Must match the backend ENCRYPTION_KEY (exactly 32 characters)
+# Override with ENCRYPTION_KEY environment variable
+encryption_key: "demo_enc_key_must_be_32_chars!!!"
+
+metrics:
+  victoriametrics_url: "http://localhost:8428/api/v1/write"
+  batch_size: 1000
+  batch_timeout: "10s"
+
+collector:
+  polling_interval: "60s"
+  device_reload_interval: "5m"
+  max_concurrent: 100
+  timeout: "30s"
+
+logging:
+  level: "info"
+  format: "json"
+
+health_server:
+  port: 8081

@@ -1,0 +1,99 @@
+# InfraSense Platform - Default Configuration
+# Edit this file to configure the InfraSense platform.
+# All values can also be overridden via environment variables (see per-service .env files).
+
+# ── Database ──────────────────────────────────────────────────────────────────
+database:
+  host: localhost
+  port: 5432
+  name: infrasense
+  user: infrasense
+  # password: set via DB_PASSWORD environment variable or /etc/infrasense/.db_credentials
+  sslmode: disable
+  max_open_conns: 25
+  max_idle_conns: 5
+  conn_max_lifetime: 1h
+  conn_max_idle_time: 10m
+
+# ── VictoriaMetrics ───────────────────────────────────────────────────────────
+victoriametrics:
+  url: http://localhost:8428
+  remote_write_url: http://localhost:8428/api/v1/write
+  # Batch size for remote_write (metrics per batch)
+  batch_size: 1000
+  # Maximum time to wait before flushing a partial batch
+  flush_interval: 10s
+
+# ── API Server ────────────────────────────────────────────────────────────────
+api:
+  listen_addr: "0.0.0.0:80"
+  # JWT secret key - MUST be changed in production
+  jwt_secret: "change-me-in-production"
+  jwt_expiry: 24h
+  # Rate limiting: requests per minute per IP
+  rate_limit: 100
+  # Allowed CORS origins (comma-separated)
+  cors_origins: "http://localhost:3000"
+
+# ── Polling Intervals ─────────────────────────────────────────────────────────
+polling:
+  # Default interval for all collectors
+  default_interval: 60s
+  # Device list hot-reload interval
+  device_reload_interval: 5m
+  # Maximum concurrent device polls per collector
+  max_concurrent: 100
+  # Per-device poll timeout
+  device_timeout: 30s
+
+# ── Collectors ────────────────────────────────────────────────────────────────
+collectors:
+  ipmi:
+    enabled: true
+    interval: 60s
+  redfish:
+    enabled: true
+    interval: 60s
+    # Skip TLS certificate verification (not recommended for production)
+    tls_insecure_skip_verify: false
+  snmp:
+    enabled: true
+    interval: 60s
+    community: public
+    version: "2c"
+  proxmox:
+    enabled: true
+    interval: 60s
+
+# ── Notifications ─────────────────────────────────────────────────────────────
+notifications:
+  # Email (SMTP)
+  email:
+    enabled: false
+    smtp_host: smtp.example.com
+    smtp_port: 587
+    smtp_user: ""
+    smtp_password: ""
+    from_address: "infrasense@example.com"
+    to_addresses: []
+    tls: true
+
+  # Telegram
+  telegram:
+    enabled: false
+    bot_token: ""
+    chat_id: ""
+
+  # Slack
+  slack:
+    enabled: false
+    webhook_url: ""
+
+# ── Logging ───────────────────────────────────────────────────────────────────
+logging:
+  # Log level: debug, info, warn, error
+  level: info
+  # Log format: json, text
+  format: json
+  # Log output: stdout, /var/log/infrasense/infrasense.log
+  output: stdout

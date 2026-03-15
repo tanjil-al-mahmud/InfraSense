@@ -1,0 +1,11 @@
+[
+  {
+    "targets": ["192.168.1.40:9633"],
+    "labels": {
+      "device_id": "example-smartctl-device-id-1",
+      "hostname": "linux-server-03",
+      "device_type": "linux_agent",
+      "location": "datacenter-1"
+    }
+  }
+]

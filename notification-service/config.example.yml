@@ -1,0 +1,32 @@
+# InfraSense Notification Service Configuration
+
+# HTTP server configuration
+server:
+  port: 8080  # Webhook endpoint port
+
+# Email notifications via SMTP
+email:
+  enabled: false                        # Set to true to enable email notifications
+  smtp_host: "smtp.gmail.com"          # SMTP server hostname
+  smtp_port: 587                        # SMTP port (587=STARTTLS, 465=TLS, 25=plain)
+  username: "your-email@gmail.com"     # SMTP authentication username
+  password: "your-app-password"        # SMTP authentication password
+  from: "infrasense@example.com"       # Sender email address
+  to: "admin@example.com"              # Recipient email address
+  use_tls: true                         # Enable TLS/STARTTLS
+
+# Telegram notifications
+telegram:
+  enabled: false                        # Set to true to enable Telegram notifications
+  bot_token: "YOUR_BOT_TOKEN"          # Bot token from @BotFather
+  chat_id: "YOUR_CHAT_ID"              # Chat ID to send messages to
+
+# Slack notifications
+slack:
+  enabled: false                                              # Set to true to enable Slack notifications
+  webhook_url: "https://hooks.slack.com/services/YOUR/WEBHOOK/URL"  # Incoming webhook URL
+
+# Logging configuration
+logging:
+  level: "info"    # Options: debug, info, warn, error
+  format: "json"   # Options: json, text

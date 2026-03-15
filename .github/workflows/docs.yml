@@ -1,0 +1,36 @@
+name: Documentation Check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify Required Files
+        run: |
+          REQUIRED_FILES=(
+            "README.md"
+            "CHANGELOG.md"
+            "docs/ARCHITECTURE.md"
+            "docs/QUICK-START.md"
+            "docs/API_REFERENCE.md"
+            "docs/TROUBLESHOOTING.md"
+            "deploy/docker-compose.yml"
+            ".env.example"
+          )
+          
+          MISSING=0
+          for file in "${REQUIRED_FILES[@]}"; do
+            if [ ! -f "$file" ]; then
+              echo "::error::Missing required file: $file"
+              MISSING=1
+            fi
+          done
+          
+          exit $MISSING

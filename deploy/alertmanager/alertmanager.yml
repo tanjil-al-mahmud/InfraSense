@@ -1,0 +1,84 @@
+global:
+  resolve_timeout: 5m
+
+# Route configuration
+route:
+  # Group alerts by device_id and alertname for deduplication
+  group_by: ['device_id', 'alertname']
+  
+  # Default group wait (will be overridden by routes)
+  group_wait: 10s
+  
+  # Group interval - wait 5 minutes before sending batch of new alerts for same group
+  group_interval: 5m
+  
+  # Default repeat interval
+  repeat_interval: 1h
+  
+  # Default receiver
+  receiver: 'notification-service'
+  
+  # Severity-based routing
+  routes:
+    # Critical and Emergency alerts - immediate routing, repeat every 1 hour
+    - match_re:
+        severity: ^(critical|emergency)$
+      group_wait: 0s
+      group_interval: 5m
+      repeat_interval: 1h
+      receiver: 'notification-service'
+      continue: false
+    
+    # Warning alerts - 2-minute delay, repeat every 4 hours
+    - match:
+        severity: warning
+      group_wait: 2m
+      group_interval: 5m
+      repeat_interval: 4h
+      receiver: 'notification-service'
+      continue: false
+    
+    # Info alerts - 5-minute delay, no repeat (set to 0 means never repeat)
+    - match:
+        severity: info
+      group_wait: 5m
+      group_interval: 5m
+      repeat_interval: 24h  # Effectively no repeat for info alerts
+      receiver: 'notification-service'
+      continue: false
+
+# Receivers configuration
+receivers:
+  - name: 'notification-service'
+    webhook_configs:
+      - url: 'http://notification-service:8080/webhook'
+        send_resolved: true
+        http_config:
+          follow_redirects: true
+        max_alerts: 0  # No limit on alerts per webhook
+
+# Inhibition rules (prevent duplicate/redundant alerts)
+inhibit_rules:
+  # Critical alerts inhibit warnings for same device/alert
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'device_id']
+  
+  # Emergency alerts inhibit critical alerts for same device/alert
+  - source_match:
+      severity: 'emergency'
+    target_match:
+      severity: 'critical'
+    equal: ['alertname', 'device_id']
+  
+  # Emergency alerts inhibit warnings for same device/alert
+  - source_match:
+      severity: 'emergency'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'device_id']
+
+# Time intervals for maintenance windows (will be configured dynamically)
+time_intervals: []

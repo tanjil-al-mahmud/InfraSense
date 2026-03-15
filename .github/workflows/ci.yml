@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build and Test Backend
+        run: |
+          cd backend
+          go mod download
+          go test -v ./...
+          go build -v ./...
+
+      - name: Build and Test Collectors
+        run: |
+          for d in collectors/*; do
+            if [ -d "$d" ]; then
+              echo "Building $d"
+              cd $d
+              go mod download
+              go test -v ./...
+              go build -v ./...
+              cd ../..
+            fi
+          done
+
+      - name: Build Notification Service
+        run: |
+          cd notification-service
+          go mod download
+          go test -v ./...
+          go build -v ./...
+
+      - name: Build Frontend
+        run: |
+          cd frontend
+          npm install
+          npx tsc --noEmit
+          npm run build

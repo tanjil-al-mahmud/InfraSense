@@ -1,0 +1,25 @@
+database:
+  host: localhost
+  port: 5432
+  database: infrasense
+  user: infrasense
+  password: changeme
+  ssl_mode: disable
+
+metrics:
+  victoriametrics_url: http://localhost:8428/api/v1/write
+  batch_size: 1000
+  batch_timeout: 10s
+
+collector:
+  polling_interval: 60s
+  device_reload_interval: 5m
+  max_concurrent: 100
+  timeout: 10s
+
+logging:
+  level: info
+  format: json
+
+health_server:
+  port: 8080

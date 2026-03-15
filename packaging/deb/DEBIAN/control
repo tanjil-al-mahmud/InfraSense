@@ -1,0 +1,14 @@
+Package: infrasense
+Version: 1.0.0
+Architecture: amd64
+Maintainer: InfraSense Team <support@infrasense.local>
+Installed-Size: 10240
+Section: net
+Priority: optional
+Depends: postgresql-client, systemd, adduser
+Homepage: https://github.com/infrasense/infrasense-platform
+Description: InfraSense Platform - Infrastructure Monitoring Solution
+ InfraSense is a comprehensive infrastructure monitoring platform that
+ collects hardware metrics via IPMI, Redfish, SNMP, and Proxmox protocols.
+ It provides real-time alerting, audit logging, and a web-based dashboard
+ for managing and monitoring physical and virtual infrastructure.

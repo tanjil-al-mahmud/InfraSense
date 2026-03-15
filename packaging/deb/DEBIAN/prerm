@@ -1,0 +1,39 @@
+#!/bin/bash
+set -e
+
+#DEBHELPER#
+
+SERVICES="
+    infrasense-backend
+    infrasense-ipmi-collector
+    infrasense-redfish-collector
+    infrasense-snmp-collector
+    infrasense-proxmox-collector
+    infrasense-notification-service
+    infrasense-frontend
+"
+
+case "$1" in
+    remove|upgrade|deconfigure)
+        if command -v systemctl > /dev/null 2>&1; then
+            for svc in $SERVICES; do
+                if systemctl is-active --quiet "${svc}.service" 2>/dev/null; then
+                    systemctl stop "${svc}.service" || true
+                fi
+                if systemctl is-enabled --quiet "${svc}.service" 2>/dev/null; then
+                    systemctl disable "${svc}.service" || true
+                fi
+            done
+        fi
+    ;;
+
+    failed-upgrade)
+    ;;
+
+    *)
+        echo "prerm called with unknown argument: '$1'" >&2
+        exit 1
+    ;;
+esac
+
+exit 0

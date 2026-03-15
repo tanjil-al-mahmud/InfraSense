@@ -1,0 +1,20 @@
+[
+  {
+    "targets": ["192.168.1.10:9100", "192.168.1.11:9100"],
+    "labels": {
+      "device_id": "example-device-id-1",
+      "hostname": "linux-server-01",
+      "device_type": "linux_agent",
+      "location": "datacenter-1"
+    }
+  },
+  {
+    "targets": ["192.168.1.12:9100"],
+    "labels": {
+      "device_id": "example-device-id-2",
+      "hostname": "linux-server-02",
+      "device_type": "linux_agent",
+      "location": "datacenter-1"
+    }
+  }
+]

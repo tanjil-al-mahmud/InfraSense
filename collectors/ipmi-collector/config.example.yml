@@ -1,0 +1,32 @@
+# InfraSense IPMI Collector Configuration
+
+# PostgreSQL database configuration
+database:
+  host: "localhost"
+  port: 5432
+  database: "infrasense"
+  user: "infrasense"
+  password: "changeme"  # Override with DB_PASSWORD environment variable
+  ssl_mode: "disable"   # Use "require" for production with SSL
+
+# VictoriaMetrics configuration
+metrics:
+  victoriametrics_url: "http://localhost:8428/api/v1/write"
+  batch_size: 1000           # Number of metrics to batch before sending
+  batch_timeout: "10s"       # Maximum time to wait before sending batch
+
+# Collector behavior
+collector:
+  polling_interval: "60s"         # How often to poll each device
+  device_reload_interval: "5m"    # How often to reload device list from DB
+  max_concurrent: 100             # Maximum concurrent device polls
+  timeout: "30s"                  # Timeout for IPMI commands
+
+# Logging configuration
+logging:
+  level: "info"    # Options: debug, info, warn, error
+  format: "json"   # Options: json, text
+
+# Health check server
+health_server:
+  port: 8080  # Port for /health and /metrics endpoints

@@ -1,0 +1,34 @@
+# InfraSense Backend Configuration
+
+# Server configuration
+server:
+  host: "0.0.0.0"  # Listen on all interfaces
+  port: 8080       # API server port
+
+# PostgreSQL database configuration
+database:
+  host: "localhost"
+  port: 5432
+  database: "infrasense"
+  user: "infrasense"
+  password: "changeme"  # Override with DB_PASSWORD environment variable
+  ssl_mode: "disable"   # Use "require" for production with SSL
+
+# VictoriaMetrics configuration
+metrics:
+  victoriametrics_url: "http://localhost:8428/api/v1/write"
+
+# Logging configuration
+logging:
+  level: "info"    # Options: debug, info, warn, error
+  format: "json"   # Options: json, text
+
+# Authentication and encryption
+auth:
+  # JWT secret for signing authentication tokens (min 32 characters)
+  # Generate: openssl rand -hex 32
+  jwt_secret: "your-secret-key-min-32-characters-long"
+  
+  # AES-256 encryption key for device credentials (exactly 32 bytes)
+  # Generate: LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c 32; echo
+  encryption_key: "12345678901234567890123456789012"

@@ -1,0 +1,122 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'infrasense'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+# Load rules once and periodically evaluate them
+rule_files:
+  - "/etc/prometheus/alert_rules.yml"
+
+# Remote write to VictoriaMetrics
+remote_write:
+  - url: http://victoriametrics:8428/api/v1/write
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # VictoriaMetrics
+  - job_name: 'victoriametrics'
+    static_configs:
+      - targets: ['victoriametrics:8428']
+
+  # IPMI Collector
+  - job_name: 'ipmi-collector'
+    static_configs:
+      - targets: ['ipmi-collector:8080']
+
+  # Redfish Collector
+  - job_name: 'redfish-collector'
+    static_configs:
+      - targets: ['redfish-collector:8080']
+
+  # SNMP Collector
+  - job_name: 'snmp-collector'
+    static_configs:
+      - targets: ['snmp-collector:8080']
+
+  # Proxmox Collector
+  - job_name: 'proxmox-collector'
+    static_configs:
+      - targets: ['proxmox-collector:8080']
+
+  # API Server
+  - job_name: 'api-server'
+    static_configs:
+      - targets: ['api-server:8080']
+
+  # Notification Service
+  - job_name: 'notification-service'
+    static_configs:
+      - targets: ['notification-service:8080']
+
+  # Node exporters (Linux agents) - dynamically discovered from PostgreSQL
+  - job_name: 'node-exporter'
+    scrape_interval: 15s
+    file_sd_configs:
+      - files:
+          - '/etc/prometheus/targets/node_exporter_targets.json'
+        refresh_interval: 5m
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+      - source_labels: [device_id]
+        target_label: device_id
+      - source_labels: [hostname]
+        target_label: hostname
+
+  # Windows exporters - dynamically discovered from PostgreSQL
+  - job_name: 'windows-exporter'
+    scrape_interval: 15s
+    file_sd_configs:
+      - files:
+          - '/etc/prometheus/targets/windows_exporter_targets.json'
+        refresh_interval: 5m
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+      - source_labels: [device_id]
+        target_label: device_id
+      - source_labels: [hostname]
+        target_label: hostname
+
+  # lm-sensors exporter (Linux hardware sensors) - dynamically discovered from PostgreSQL
+  - job_name: 'lm-sensors-exporter'
+    scrape_interval: 15s
+    file_sd_configs:
+      - files:
+          - '/etc/prometheus/targets/lm_sensors_exporter_targets.json'
+        refresh_interval: 5m
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+      - source_labels: [device_id]
+        target_label: device_id
+      - source_labels: [hostname]
+        target_label: hostname
+
+  # smartctl exporter (disk SMART data) - dynamically discovered from PostgreSQL
+  - job_name: 'smartctl-exporter'
+    scrape_interval: 60s
+    file_sd_configs:
+      - files:
+          - '/etc/prometheus/targets/smartctl_exporter_targets.json'
+        refresh_interval: 5m
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+      - source_labels: [device_id]
+        target_label: device_id
+      - source_labels: [hostname]
+        target_label: hostname

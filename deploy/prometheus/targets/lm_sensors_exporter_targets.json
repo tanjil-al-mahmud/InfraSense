@@ -1,0 +1,11 @@
+[
+  {
+    "targets": ["192.168.1.30:9255"],
+    "labels": {
+      "device_id": "example-lm-sensors-device-id-1",
+      "hostname": "linux-desktop-01",
+      "device_type": "linux_agent",
+      "location": "datacenter-1"
+    }
+  }
+]

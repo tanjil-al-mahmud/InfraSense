@@ -1,0 +1,17 @@
+[Unit]
+Description=InfraSense Notification Service
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=infrasense
+Group=infrasense
+ExecStart=/usr/local/bin/infrasense-notification
+EnvironmentFile=-/etc/infrasense/infrasense-notification.env
+Restart=always
+RestartSec=10s
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

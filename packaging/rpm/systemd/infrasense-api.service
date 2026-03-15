@@ -1,0 +1,28 @@
+[Unit]
+Description=InfraSense API Server
+Documentation=https://github.com/infrasense/infrasense-platform
+After=network.target network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=infrasense
+Group=infrasense
+ExecStart=/usr/local/bin/infrasense-api
+EnvironmentFile=-/etc/infrasense/infrasense-api.env
+Restart=on-failure
+RestartSec=10s
+TimeoutStartSec=30s
+TimeoutStopSec=30s
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=infrasense-api
+
+# Security hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/infrasense /var/log/infrasense /etc/infrasense
+
+[Install]
+WantedBy=multi-user.target
