@@ -8,7 +8,6 @@ SERVICES="
     infrasense-ipmi-collector
     infrasense-redfish-collector
     infrasense-snmp-collector
-    infrasense-proxmox-collector
     infrasense-notification-service
     infrasense-frontend
 "

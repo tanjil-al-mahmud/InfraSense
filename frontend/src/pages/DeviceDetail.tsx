@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Legend } from 'recharts';
-import { deviceKeys, useDevice, useUpdateDevice, useSyncDevice, usePowerControl, useBootControl } from '../hooks/useDevices';
+import { deviceKeys, useDevice, useUpdateDevice, useSyncDevice, usePowerControl, useBootControl, useTestConnection } from '../hooks/useDevices';
 import { fetchDeviceInventory, fetchDeviceMetrics, streamDeviceTelemetry } from '../services/deviceApi';
 import {
   Device, UpdateDeviceRequest, DeviceStatus, DeviceMetricPoint,
@@ -811,8 +811,10 @@ const DeviceDetail: React.FC = () => {
   const [showPower, setShowPower] = useState(false);
   const [showBoot, setShowBoot] = useState(false);
   const [syncMsg, setSyncMsg] = useState<{ text: string; ok: boolean } | null>(null);
+  const [testMsg, setTestMsg] = useState<{ text: string; ok: boolean } | null>(null);
 
   const syncDevice = useSyncDevice();
+  const testConn = useTestConnection();
 
   const { data: device, isLoading: deviceLoading, error: deviceError } = useDevice(id ?? '');
 
@@ -843,6 +845,19 @@ const DeviceDetail: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['inventory', id] });
     } catch (e) {
       setSyncMsg({ text: e instanceof Error ? e.message : 'Sync failed', ok: false });
+    }
+  };
+
+  const handleTest = async () => {
+    if (!id) return;
+    setTestMsg(null);
+    try {
+      const res = await testConn.mutateAsync(id);
+      setTestMsg({ text: res.success ? 'Connection successful: ' + res.message : 'Connection failed: ' + res.message, ok: res.success });
+      // Clear message after 5 seconds
+      setTimeout(() => setTestMsg(null), 5000);
+    } catch (e) {
+      setTestMsg({ text: e instanceof Error ? e.message : 'Test connection failed', ok: false });
     }
   };
 
@@ -892,6 +907,14 @@ const DeviceDetail: React.FC = () => {
               </div>
             </div>
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              {testMsg && (
+                <div style={{ background: testMsg.ok ? '#052e16' : '#450a0a', border: `1px solid ${testMsg.ok ? '#16a34a' : '#dc2626'}`, borderRadius: 6, color: testMsg.ok ? '#4ade80' : '#f87171', fontSize: '0.75rem', padding: '0.45rem 0.9rem', display: 'flex', alignItems: 'center' }}>
+                  {testMsg.ok ? '✅' : '❌'} {testMsg.text}
+                </div>
+              )}
+              <button onClick={handleTest} disabled={testConn.isPending} style={{ background: '#1e293b', border: '1px solid #10b981', borderRadius: 6, color: '#34d399', cursor: testConn.isPending ? 'not-allowed' : 'pointer', fontSize: '0.8rem', fontWeight: 500, padding: '0.45rem 0.9rem', opacity: testConn.isPending ? 0.6 : 1 }}>
+                {testConn.isPending ? '⏳ Testing…' : '🔌 Test Connection'}
+              </button>
               <button onClick={() => setShowEdit(true)} style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 6, color: '#94a3b8', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 500, padding: '0.45rem 0.9rem' }}>Edit</button>
               <button onClick={handleSync} disabled={syncDevice.isPending} style={{ background: '#1e293b', border: '1px solid #3b82f6', borderRadius: 6, color: '#60a5fa', cursor: syncDevice.isPending ? 'not-allowed' : 'pointer', fontSize: '0.8rem', fontWeight: 500, padding: '0.45rem 0.9rem', opacity: syncDevice.isPending ? 0.6 : 1 }}>
                 {syncDevice.isPending ? '⏳ Syncing…' : '🔄 Sync'}

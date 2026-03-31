@@ -286,7 +286,11 @@ func (h *DeviceHandler) TestConnection(c *gin.Context) {
 
 	var result models.ConnectionTestResult
 	if device.Protocol != nil && *device.Protocol == "ipmi" {
-		result = h.ipmiService.TestConnection(c.Request.Context(), *device.BMCIPAddress, cred, password)
+		port := 623
+		if cred.Port != nil {
+			port = *cred.Port
+		}
+		result = h.ipmiService.TestConnection(c.Request.Context(), *device.BMCIPAddress, port, cred, password)
 	} else {
 		result = h.redfishService.TestConnection(c.Request.Context(), *device.BMCIPAddress, cred, password)
 	}
@@ -350,7 +354,11 @@ func (h *DeviceHandler) SyncDevice(c *gin.Context) {
 
 	var syncResult models.DeviceSyncResult
 	if device.Protocol != nil && *device.Protocol == "ipmi" {
-		syncResult, err = h.ipmiService.SyncDevice(c.Request.Context(), *device.BMCIPAddress, cred, password)
+		port := 623
+		if cred.Port != nil {
+			port = *cred.Port
+		}
+		syncResult, err = h.ipmiService.SyncDevice(c.Request.Context(), *device.BMCIPAddress, port, cred, password)
 	} else {
 		syncResult, err = h.redfishService.SyncDevice(c.Request.Context(), *device.BMCIPAddress, cred, password)
 	}
@@ -380,7 +388,7 @@ func (h *DeviceHandler) SyncDevice(c *gin.Context) {
 }
 
 // resolveCredential looks up credentials for a device, trying the exact device_type first,
-// then falling back to the protocol family (redfish, ipmi, snmp_v2c, snmp_v3, proxmox).
+// then falling back to the protocol family (redfish, ipmi, snmp_v2c, snmp_v3).
 // This handles vendor-specific device types like "dell_idrac9_redfish" where credentials
 // are stored under the canonical protocol name "redfish".
 func (h *DeviceHandler) resolveCredential(ctx context.Context, deviceID uuid.UUID, deviceType string) (*models.DeviceCredential, error) {
@@ -391,7 +399,7 @@ func (h *DeviceHandler) resolveCredential(ctx context.Context, deviceID uuid.UUI
 	}
 
 	// Derive protocol family from device_type suffix
-	protocolFamilies := []string{"redfish", "ipmi", "snmp_v3", "snmp_v2c", "proxmox"}
+	protocolFamilies := []string{"redfish", "ipmi", "snmp_v3", "snmp_v2c"}
 	for _, proto := range protocolFamilies {
 		if strings.HasSuffix(deviceType, proto) || strings.Contains(deviceType, proto) {
 			cred, err = h.credRepo.GetByDeviceIDAndProtocol(ctx, deviceID, proto)
@@ -522,7 +530,16 @@ func (h *DeviceHandler) PowerControl(c *gin.Context) {
 		password = decrypted
 	}
 
-	result := h.redfishService.PowerControl(c.Request.Context(), *device.BMCIPAddress, cred, password, req.ResetType)
+	var result models.PowerControlResult
+	if device.Protocol != nil && *device.Protocol == "ipmi" {
+		port := 623
+		if cred.Port != nil {
+			port = *cred.Port
+		}
+		result = h.ipmiService.PowerControl(c.Request.Context(), *device.BMCIPAddress, port, cred, password, req.ResetType)
+	} else {
+		result = h.redfishService.PowerControl(c.Request.Context(), *device.BMCIPAddress, cred, password, req.ResetType)
+	}
 
 	userID, _ := c.Get("user_id")
 	h.auditService.LogDeviceUpdate(c.Request.Context(), userID.(uuid.UUID), device.ID, c.ClientIP(), map[string]interface{}{
@@ -589,7 +606,16 @@ func (h *DeviceHandler) BootControl(c *gin.Context) {
 		password = decrypted
 	}
 
-	result := h.redfishService.BootControl(c.Request.Context(), *device.BMCIPAddress, cred, password, req.Target, req.Once)
+	var result models.BootControlResult
+	if device.Protocol != nil && *device.Protocol == "ipmi" {
+		port := 623
+		if cred.Port != nil {
+			port = *cred.Port
+		}
+		result = h.ipmiService.BootControl(c.Request.Context(), *device.BMCIPAddress, port, cred, password, req.Target, req.Once)
+	} else {
+		result = h.redfishService.BootControl(c.Request.Context(), *device.BMCIPAddress, cred, password, req.Target, req.Once)
+	}
 
 	userID, _ := c.Get("user_id")
 	h.auditService.LogDeviceUpdate(c.Request.Context(), userID.(uuid.UUID), device.ID, c.ClientIP(), map[string]interface{}{
@@ -728,3 +754,26 @@ func (h *DeviceHandler) GetInventory(c *gin.Context) {
 	response.Success(c, inv)
 }
 
+// TestIPMIRequest
+type TestIPMIRequest struct {
+	Host     string `json:"host" binding:"required"`
+	Port     int    `json:"port"`
+	Username string `json:"username" binding:"required"`
+	Password string `json:"password" binding:"required"`
+}
+
+// TestIPMI handles POST /api/v1/devices/test-ipmi
+func (h *DeviceHandler) TestIPMI(c *gin.Context) {
+	var req TestIPMIRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request body", "INVALID_REQUEST")
+		return
+	}
+
+	cred := &models.DeviceCredential{
+		Username: &req.Username,
+	}
+
+	result := h.ipmiService.TestConnection(c.Request.Context(), req.Host, req.Port, cred, req.Password)
+	c.JSON(http.StatusOK, result)
+}

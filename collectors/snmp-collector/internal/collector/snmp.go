@@ -106,9 +106,9 @@ func (c *SNMPCollector) loadDevices() error {
 			COALESCE(dc.community_string, '') as community,
 			COALESCE(dc.username, '') as username,
 			COALESCE(dc.auth_protocol, '') as auth_protocol,
-			COALESCE(dc.auth_password, '') as auth_password,
+			COALESCE(dc.auth_password_encrypted, '') as auth_password,
 			COALESCE(dc.priv_protocol, '') as priv_protocol,
-			COALESCE(dc.priv_password, '') as priv_password,
+			COALESCE(dc.priv_password_encrypted, '') as priv_password,
 			d.status
 		FROM devices d
 		LEFT JOIN device_credentials dc ON d.id = dc.device_id

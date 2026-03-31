@@ -61,9 +61,6 @@ collectors:
     interval: 60s
     community: public
     version: "2c"
-  proxmox:
-    enabled: true
-    interval: 60s
 
 # ── Notifications ─────────────────────────────────────────────────────────────
 notifications:

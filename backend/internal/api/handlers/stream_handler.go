@@ -163,7 +163,7 @@ func (h *StreamHandler) resolveCredential(ctx context.Context, deviceID uuid.UUI
 	if err == nil {
 		return cred, nil
 	}
-	for _, proto := range []string{"redfish", "ipmi", "snmp_v3", "snmp_v2c", "proxmox"} {
+	for _, proto := range []string{"redfish", "ipmi", "snmp_v3", "snmp_v2c"} {
 		if strings.HasSuffix(deviceType, proto) || strings.Contains(deviceType, proto) {
 			cred, err = h.credRepo.GetByDeviceIDAndProtocol(ctx, deviceID, proto)
 			if err == nil {

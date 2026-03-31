@@ -5,7 +5,7 @@ BUILD_TIME  ?= $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 LDFLAGS     := -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME)"
 REGISTRY    ?= ghcr.io/infrasense
 
-COLLECTORS := ipmi-collector redfish-collector snmp-collector proxmox-collector ssh-collector
+COLLECTORS := ipmi-collector redfish-collector snmp-collector ssh-collector
 
 .DEFAULT_GOAL := help
 

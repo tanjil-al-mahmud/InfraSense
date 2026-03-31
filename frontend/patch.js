@@ -198,7 +198,7 @@ content = content.replace(
 );
 content = content.replace(
   `{protocol === 'proxmox' && (`,
-  `{activeProtocol === 'proxmox' && (`
+  ``
 );
 content = content.replace(
   `{protocol === 'agent' && (`,

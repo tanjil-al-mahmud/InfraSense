@@ -47,5 +47,4 @@ const (
 	ProtocolRedfish = "redfish"
 	ProtocolSNMPv2c = "snmp_v2c"
 	ProtocolSNMPv3  = "snmp_v3"
-	ProtocolProxmox = "proxmox"
 )

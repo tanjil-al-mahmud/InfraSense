@@ -45,10 +45,6 @@ GOOS=linux GOARCH=amd64 go build -o dist/bin/infrasense-redfish-collector \
 GOOS=linux GOARCH=amd64 go build -o dist/bin/infrasense-snmp-collector \
     ./collectors/snmp-collector/cmd
 
-# Proxmox Collector
-GOOS=linux GOARCH=amd64 go build -o dist/bin/infrasense-proxmox-collector \
-    ./collectors/proxmox-collector/cmd
-
 # Notification Service
 GOOS=linux GOARCH=amd64 go build -o dist/bin/infrasense-notification-service \
     ./notification-service/cmd
@@ -234,7 +230,6 @@ The RPM package includes:
 ├── infrasense-ipmi-collector
 ├── infrasense-redfish-collector
 ├── infrasense-snmp-collector
-├── infrasense-proxmox-collector
 └── infrasense-notification-service
 
 /etc/infrasense/
@@ -245,7 +240,6 @@ The RPM package includes:
 ├── infrasense-ipmi-collector.service
 ├── infrasense-redfish-collector.service
 ├── infrasense-snmp-collector.service
-├── infrasense-proxmox-collector.service
 ├── infrasense-notification-service.service
 └── infrasense-frontend.service
 

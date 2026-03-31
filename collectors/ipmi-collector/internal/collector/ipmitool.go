@@ -38,12 +38,20 @@ type SDRRecord struct {
 
 // ExecuteIPMITool executes ipmitool command with proper argument escaping
 func ExecuteIPMITool(ctx context.Context, host, username, password string, args ...string) (string, error) {
+	return ExecuteIPMIToolWithPort(ctx, host, 623, username, password, args...)
+}
+
+// ExecuteIPMIToolWithPort executes ipmitool command with a specific port
+func ExecuteIPMIToolWithPort(ctx context.Context, host string, port int, username, password string, args ...string) (string, error) {
 	// Validate inputs to prevent command injection
 	if err := validateIPMIInput(host); err != nil {
 		return "", fmt.Errorf("invalid host: %w", err)
 	}
 	if err := validateIPMIInput(username); err != nil {
 		return "", fmt.Errorf("invalid username: %w", err)
+	}
+	if port <= 0 {
+		port = 623
 	}
 
 	// Build ipmitool command
@@ -52,12 +60,25 @@ func ExecuteIPMITool(ctx context.Context, host, username, password string, args 
 		"-H", host,
 		"-U", username,
 		"-P", password,
+		"-p", fmt.Sprintf("%d", port),
 	}
 	cmdArgs = append(cmdArgs, args...)
+
+	// Log command (mask password)
+	logArgs := []string{"-I", "lanplus", "-H", host, "-U", username, "-P", "***", "-p", fmt.Sprintf("%d", port)}
+	logArgs = append(logArgs, args...)
+	slog.Info("ipmitool command",
+		"event", "ipmitool_exec",
+		"command", "ipmitool "+strings.Join(logArgs, " "))
 
 	cmd := exec.CommandContext(ctx, "ipmitool", cmdArgs...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
+		slog.Error("ipmitool command failed",
+			"event", "ipmitool_error",
+			"host", host,
+			"output", string(output),
+			"error", err.Error())
 		return "", fmt.Errorf("ipmitool command failed: %w (output: %s)", err, string(output))
 	}
 
@@ -78,11 +99,31 @@ func validateIPMIInput(input string) error {
 // Emits infrasense_ipmi_chassis_power_state with value 1 (on) or 0 (off).
 // On non-zero exit code, logs command, exit code, and stderr.
 func runChassisStatus(ctx context.Context, device Device) ([]Metric, error) {
+	bmcIP := device.BMCIPAddress
+	if bmcIP == "" {
+		bmcIP = device.IPAddress
+	}
+	port := device.Port
+	if port == 0 {
+		port = 623
+	}
+
+	slog.Info("Starting IPMI poll for device",
+		"event", "ipmi_poll_start",
+		"hostname", device.Hostname,
+		"bmc_ip", bmcIP,
+		"port", port)
+
+	slog.Info("ipmitool command",
+		"event", "ipmitool_exec",
+		"command", fmt.Sprintf("ipmitool -I lanplus -H %s -U %s -P *** -p %d chassis status", bmcIP, device.Username, port))
+
 	cmdArgs := []string{
 		"-I", "lanplus",
-		"-H", device.IPAddress,
+		"-H", bmcIP,
 		"-U", device.Username,
 		"-P", device.Password,
+		"-p", fmt.Sprintf("%d", port),
 		"chassis", "status",
 	}
 
@@ -112,7 +153,7 @@ func runChassisStatus(ctx context.Context, device Device) ([]Metric, error) {
 		Name:  "infrasense_ipmi_chassis_power_state",
 		Value: powerState,
 		Labels: map[string]string{
-			"device_id": fmt.Sprintf("%d", device.ID),
+			"device_id": device.ID,
 			"hostname":  device.Hostname,
 		},
 		Timestamp: time.Now(),
@@ -147,11 +188,25 @@ func parseChassisPowerState(output string) float64 {
 // Sensors with value "na" or "N/A" are skipped.
 // On non-zero exit code, logs command, exit code, and stderr.
 func runSensorList(ctx context.Context, device Device) ([]Metric, error) {
+	bmcIP := device.BMCIPAddress
+	if bmcIP == "" {
+		bmcIP = device.IPAddress
+	}
+	port := device.Port
+	if port == 0 {
+		port = 623
+	}
+
+	slog.Info("ipmitool command",
+		"event", "ipmitool_exec",
+		"command", fmt.Sprintf("ipmitool -I lanplus -H %s -U %s -P *** -p %d sensor", bmcIP, device.Username, port))
+
 	cmdArgs := []string{
 		"-I", "lanplus",
-		"-H", device.IPAddress,
+		"-H", bmcIP,
 		"-U", device.Username,
 		"-P", device.Password,
+		"-p", fmt.Sprintf("%d", port),
 		"sensor",
 	}
 
@@ -216,7 +271,7 @@ func parseSensorList(output string, device Device) ([]Metric, error) {
 			Labels: map[string]string{
 				"sensor_name": sensorName,
 				"unit":        unit,
-				"device_id":   fmt.Sprintf("%d", device.ID),
+				"device_id":   device.ID,
 				"hostname":    device.Hostname,
 			},
 			Timestamp: time.Now(),
@@ -230,11 +285,25 @@ func parseSensorList(output string, device Device) ([]Metric, error) {
 // Each record captures sensor name, type, entity ID, reading, and status.
 // On non-zero exit code, logs command, exit code, and stderr.
 func runSDR(ctx context.Context, device Device) ([]SDRRecord, error) {
+	bmcIP := device.BMCIPAddress
+	if bmcIP == "" {
+		bmcIP = device.IPAddress
+	}
+	port := device.Port
+	if port == 0 {
+		port = 623
+	}
+
+	slog.Info("ipmitool command",
+		"event", "ipmitool_exec",
+		"command", fmt.Sprintf("ipmitool -I lanplus -H %s -U %s -P *** -p %d sdr", bmcIP, device.Username, port))
+
 	cmdArgs := []string{
 		"-I", "lanplus",
-		"-H", device.IPAddress,
+		"-H", bmcIP,
 		"-U", device.Username,
 		"-P", device.Password,
+		"-p", fmt.Sprintf("%d", port),
 		"sdr",
 	}
 
@@ -303,11 +372,21 @@ func parseSDRRecords(output string) []SDRRecord {
 // Severity is classified as "critical", "warning", or "info" based on event description keywords.
 // On non-zero exit code, logs command, exit code, and stderr, then returns an error.
 func runSELList(ctx context.Context, device Device) ([]Metric, error) {
+	bmcIP := device.BMCIPAddress
+	if bmcIP == "" {
+		bmcIP = device.IPAddress
+	}
+	port := device.Port
+	if port == 0 {
+		port = 623
+	}
+
 	cmdArgs := []string{
 		"-I", "lanplus",
-		"-H", device.IPAddress,
+		"-H", bmcIP,
 		"-U", device.Username,
 		"-P", device.Password,
+		"-p", fmt.Sprintf("%d", port),
 		"sel", "list",
 	}
 
@@ -384,7 +463,7 @@ func parseSELEntries(output string, device Device) ([]Metric, error) {
 			Value: count,
 			Labels: map[string]string{
 				"severity":  severity,
-				"device_id": fmt.Sprintf("%d", device.ID),
+				"device_id": device.ID,
 				"hostname":  device.Hostname,
 			},
 			Timestamp: time.Now(),
@@ -398,11 +477,21 @@ func parseSELEntries(output string, device Device) ([]Metric, error) {
 // Parses Product Manufacturer, Product Name, and Product Serial from the output.
 // On non-zero exit code, logs command, exit code, and stderr, then returns an error.
 func runFRU(ctx context.Context, device Device, db *sql.DB) error {
+	bmcIP := device.BMCIPAddress
+	if bmcIP == "" {
+		bmcIP = device.IPAddress
+	}
+	port := device.Port
+	if port == 0 {
+		port = 623
+	}
+
 	cmdArgs := []string{
 		"-I", "lanplus",
-		"-H", device.IPAddress,
+		"-H", bmcIP,
 		"-U", device.Username,
 		"-P", device.Password,
+		"-p", fmt.Sprintf("%d", port),
 		"fru",
 	}
 
@@ -439,7 +528,7 @@ func runFRU(ctx context.Context, device Device, db *sql.DB) error {
 			collected_at  = EXCLUDED.collected_at
 	`
 	if _, err := db.ExecContext(ctx, upsertQuery, device.ID, manufacturer, productName, serialNumber); err != nil {
-		return fmt.Errorf("failed to upsert FRU inventory for device %d: %w", device.ID, err)
+		return fmt.Errorf("failed to upsert FRU inventory for device %s: %w", device.ID, err)
 	}
 
 	slog.Info("FRU inventory upserted",
@@ -482,6 +571,15 @@ func parseFRUOutput(output string) (manufacturer, productName, serialNumber stri
 
 // CollectIPMIData collects all IPMI sensor data and SEL logs
 func CollectIPMIData(ctx context.Context, device Device) (*IPMIData, error) {
+	bmcIP := device.BMCIPAddress
+	if bmcIP == "" {
+		bmcIP = device.IPAddress
+	}
+	port := device.Port
+	if port == 0 {
+		port = 623
+	}
+
 	data := &IPMIData{
 		Metrics: make([]Metric, 0),
 		SELLogs: make([]string, 0),
@@ -501,10 +599,10 @@ func CollectIPMIData(ctx context.Context, device Device) (*IPMIData, error) {
 	data.Metrics = append(data.Metrics, chassisMetrics...)
 
 	// Collect sensor data - try 'sdr list full' first, fallback to 'sdr'
-	sensorOutput, err := ExecuteIPMITool(ctx, device.IPAddress, device.Username, device.Password, "sdr", "list", "full")
+	sensorOutput, err := ExecuteIPMIToolWithPort(ctx, bmcIP, port, device.Username, device.Password, "sdr", "list", "full")
 	if err != nil {
-		slog.Warn("ipmitool sdr list full failed, falling back to basic sdr", "host", device.IPAddress, "error", err)
-		sensorOutput, err = ExecuteIPMITool(ctx, device.IPAddress, device.Username, device.Password, "sdr")
+		slog.Warn("ipmitool sdr list full failed, falling back to basic sdr", "host", bmcIP, "error", err)
+		sensorOutput, err = ExecuteIPMIToolWithPort(ctx, bmcIP, port, device.Username, device.Password, "sdr")
 	}
 
 	if err != nil {
@@ -520,17 +618,15 @@ func CollectIPMIData(ctx context.Context, device Device) (*IPMIData, error) {
 	// Collect PSU status
 	psuMetrics, err := collectPSUStatus(ctx, device)
 	if err != nil {
-		// Log error but continue with other metrics
-		fmt.Printf("Warning: failed to collect PSU status for device %s: %v\n", device.Hostname, err)
+		slog.Warn("failed to collect PSU status", "hostname", device.Hostname, "error", err)
 	} else {
 		data.Metrics = append(data.Metrics, psuMetrics...)
 	}
 
 	// Collect SEL logs
-	selOutput, err := ExecuteIPMITool(ctx, device.IPAddress, device.Username, device.Password, "sel", "list")
+	selOutput, err := ExecuteIPMIToolWithPort(ctx, bmcIP, port, device.Username, device.Password, "sel", "list")
 	if err != nil {
-		// Log error but continue
-		fmt.Printf("Warning: failed to collect SEL logs for device %s: %v\n", device.Hostname, err)
+		slog.Warn("failed to collect SEL logs", "hostname", device.Hostname, "error", err)
 	} else {
 		data.SELLogs = parseSELLogs(selOutput)
 	}
@@ -539,7 +635,7 @@ func CollectIPMIData(ctx context.Context, device Device) (*IPMIData, error) {
 }
 
 // parseSensorData parses ipmitool sdr output
-func parseSensorData(output string, deviceID int64) ([]Metric, error) {
+func parseSensorData(output string, deviceID string) ([]Metric, error) {
 	metrics := make([]Metric, 0)
 	scanner := bufio.NewScanner(strings.NewReader(output))
 
@@ -596,7 +692,7 @@ func parseSensorData(output string, deviceID int64) ([]Metric, error) {
 			Name:  fmt.Sprintf("infrasense_ipmi_%s", sensorType),
 			Value: value,
 			Labels: map[string]string{
-				"device_id":   fmt.Sprintf("%d", deviceID),
+				"device_id":   deviceID,
 				"sensor_name": sensorName,
 				"sensor_type": sensorType,
 				"status":      status,
@@ -679,7 +775,15 @@ func determineSensorType(sensorName, unit string) string {
 
 // collectPSUStatus collects PSU status information
 func collectPSUStatus(ctx context.Context, device Device) ([]Metric, error) {
-	output, err := ExecuteIPMITool(ctx, device.IPAddress, device.Username, device.Password, "sdr", "type", "Power Supply")
+	bmcIP := device.BMCIPAddress
+	if bmcIP == "" {
+		bmcIP = device.IPAddress
+	}
+	port := device.Port
+	if port == 0 {
+		port = 623
+	}
+	output, err := ExecuteIPMIToolWithPort(ctx, bmcIP, port, device.Username, device.Password, "sdr", "type", "Power Supply")
 	if err != nil {
 		return nil, err
 	}
@@ -707,7 +811,7 @@ func collectPSUStatus(ctx context.Context, device Device) ([]Metric, error) {
 					Name:  "infrasense_ipmi_psu_status",
 					Value: statusValue,
 					Labels: map[string]string{
-						"device_id":   fmt.Sprintf("%d", device.ID),
+						"device_id":   device.ID,
 						"sensor_name": psuName,
 						"sensor_type": "psu_status",
 						"status":      status,

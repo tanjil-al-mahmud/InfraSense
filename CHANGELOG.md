@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Complete automated end-to-end device monitoring platform via Docker Compose stack.
-- Redfish, IPMI, SNMP, Proxmox, and SSH metrics and logs collectors.
+- Redfish, IPMI, SNMP, and SSH metrics and logs collectors.
 - TypeScript React dashboard with device management, alert rules, and RBAC authentication.
 - Real-time device stream viewing capability.
 - Full Windows Native deployment support and native Linux support.
@@ -34,3 +34,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 - Cleaned and removed temporary test/scratch files spanning `fix_admin.sql`, `genhash`, and `test` suites.
 - Removed unnecessary metadata tracking records and redundant project file overhead.
+- Completely removed Proxmox integration and all related collectors, configurations, and documentation.

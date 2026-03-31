@@ -92,7 +92,7 @@ cd ..
 
 # Build collectors
 echo "Building Go collectors..."
-for c in ipmi-collector proxmox-collector redfish-collector snmp-collector; do
+for c in ipmi-collector redfish-collector snmp-collector; do
   if [ -d "collectors/$c" ]; then
     echo "  - $c"
     cd collectors/$c

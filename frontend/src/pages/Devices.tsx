@@ -20,10 +20,10 @@ const STATUS_COLORS: Record<DeviceStatus, { bg: string; text: string; label: str
 
 const DEVICE_TYPE_LABELS: Record<DeviceType, string> = {
   ipmi: 'IPMI', redfish: 'Redfish', snmp: 'SNMP',
-  proxmox: 'Proxmox', linux_agent: 'Linux Agent', windows_agent: 'Windows Agent',
+  linux_agent: 'Linux Agent', windows_agent: 'Windows Agent',
 };
 
-const ALL_DEVICE_TYPES: DeviceType[] = ['ipmi', 'redfish', 'snmp', 'proxmox', 'linux_agent', 'windows_agent'];
+const ALL_DEVICE_TYPES: DeviceType[] = ['ipmi', 'redfish', 'snmp', 'linux_agent', 'windows_agent'];
 const ALL_STATUSES: DeviceStatus[] = ['healthy', 'warning', 'critical', 'unavailable', 'unknown'];
 
 // Derive vendor label from device_type string
@@ -42,7 +42,6 @@ function getVendorLabel(deviceType: string): string {
   if (deviceType.startsWith('apc_')) return 'APC';
   if (deviceType.startsWith('eaton_')) return 'Eaton';
   if (deviceType.startsWith('generic_')) return 'Generic';
-  if (deviceType === 'proxmox') return 'Proxmox';
   if (deviceType === 'linux_agent') return 'Linux';
   if (deviceType === 'windows_agent') return 'Windows';
   return deviceType;
@@ -52,7 +51,6 @@ function getTypeLabel(deviceType: string): string {
   if (deviceType.includes('redfish')) return 'Redfish';
   if (deviceType.includes('ipmi')) return 'IPMI';
   if (deviceType.includes('snmp')) return 'SNMP';
-  if (deviceType === 'proxmox') return 'Proxmox';
   if (deviceType === 'linux_agent') return 'Linux Agent';
   if (deviceType === 'windows_agent') return 'Windows Agent';
   return DEVICE_TYPE_LABELS[deviceType as DeviceType] ?? deviceType;

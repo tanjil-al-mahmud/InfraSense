@@ -122,7 +122,6 @@ case "$1" in
             infrasense-ipmi-collector
             infrasense-redfish-collector
             infrasense-snmp-collector
-            infrasense-proxmox-collector
             infrasense-notification-service
             infrasense-frontend
         "

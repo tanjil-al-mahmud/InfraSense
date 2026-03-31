@@ -22,7 +22,8 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o ipmi-collector ./
 FROM alpine:3.19
 
 # Install ipmitool and ca-certificates
-RUN apk add --no-cache ipmitool ca-certificates tzdata
+RUN apk add --no-cache ipmitool ca-certificates tzdata && \
+    ln -sf /usr/sbin/ipmitool /usr/bin/ipmitool
 
 # Create non-root user
 RUN addgroup -g 1000 collector && \

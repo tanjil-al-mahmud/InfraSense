@@ -27,7 +27,6 @@ The integration test suite (`suite.sh`) verifies the following aspects of packag
   - `infrasense-redfish-collector`
   - `infrasense-snmp-collector`
   - `infrasense-notification-service`
-  - `infrasense-proxmox-collector`
 - **Validates**: Requirements 25.3, 26.3
 
 ### Test 4: Configuration Files
@@ -42,7 +41,6 @@ The integration test suite (`suite.sh`) verifies the following aspects of packag
   - `infrasense-redfish-collector.service`
   - `infrasense-snmp-collector.service`
   - `infrasense-notification-service.service`
-  - `infrasense-proxmox-collector.service`
 - **Validates**: Requirements 25.5, 26.5
 
 ### Test 6: System User and Group

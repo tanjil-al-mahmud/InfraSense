@@ -160,7 +160,6 @@ export const CreateDeviceExample: React.FC = () => {
             <option value="ipmi">IPMI</option>
             <option value="redfish">Redfish</option>
             <option value="snmp">SNMP</option>
-            <option value="proxmox">Proxmox</option>
             <option value="linux_agent">Linux Agent</option>
             <option value="windows_agent">Windows Agent</option>
           </select>

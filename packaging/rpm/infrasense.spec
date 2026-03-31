@@ -14,7 +14,7 @@ Requires(postun): systemd
 
 %description
 InfraSense is a comprehensive infrastructure monitoring platform that
-collects hardware metrics via IPMI, Redfish, SNMP, and Proxmox protocols.
+collects hardware metrics via IPMI, Redfish, and SNMP protocols.
 It provides real-time alerting, audit logging, and a web-based dashboard
 for managing and monitoring physical and virtual infrastructure.
 
@@ -38,7 +38,6 @@ for bin in \
     infrasense-ipmi-collector \
     infrasense-redfish-collector \
     infrasense-snmp-collector \
-    infrasense-proxmox-collector \
     infrasense-notification-service; do
     install -m 0755 %{_builddir}/%{name}-%{version}/bin/${bin} \
         %{buildroot}/usr/local/bin/${bin}
@@ -56,7 +55,6 @@ for svc in \
     infrasense-ipmi-collector \
     infrasense-redfish-collector \
     infrasense-snmp-collector \
-    infrasense-proxmox-collector \
     infrasense-notification-service \
     infrasense-frontend; do
     install -m 0644 \
@@ -84,7 +82,6 @@ install -d %{buildroot}/var/log/infrasense
 /usr/local/bin/infrasense-ipmi-collector
 /usr/local/bin/infrasense-redfish-collector
 /usr/local/bin/infrasense-snmp-collector
-/usr/local/bin/infrasense-proxmox-collector
 /usr/local/bin/infrasense-notification-service
 
 # Configuration (noreplace preserves local edits on upgrade)
@@ -96,7 +93,6 @@ install -d %{buildroot}/var/log/infrasense
 /usr/lib/systemd/system/infrasense-ipmi-collector.service
 /usr/lib/systemd/system/infrasense-redfish-collector.service
 /usr/lib/systemd/system/infrasense-snmp-collector.service
-/usr/lib/systemd/system/infrasense-proxmox-collector.service
 /usr/lib/systemd/system/infrasense-notification-service.service
 /usr/lib/systemd/system/infrasense-frontend.service
 
@@ -137,7 +133,6 @@ exit 0
     infrasense-ipmi-collector.service \
     infrasense-redfish-collector.service \
     infrasense-snmp-collector.service \
-    infrasense-proxmox-collector.service \
     infrasense-notification-service.service \
     infrasense-frontend.service
 
@@ -231,7 +226,6 @@ if command -v systemctl > /dev/null 2>&1 && systemctl is-system-running --quiet 
         infrasense-ipmi-collector \
         infrasense-redfish-collector \
         infrasense-snmp-collector \
-        infrasense-proxmox-collector \
         infrasense-notification-service \
         infrasense-frontend; do
         systemctl enable "${svc}.service" || true
@@ -273,7 +267,6 @@ exit 0
     infrasense-ipmi-collector.service \
     infrasense-redfish-collector.service \
     infrasense-snmp-collector.service \
-    infrasense-proxmox-collector.service \
     infrasense-notification-service.service \
     infrasense-frontend.service
 
@@ -285,7 +278,6 @@ if [ "$1" -eq 0 ]; then
             infrasense-ipmi-collector \
             infrasense-redfish-collector \
             infrasense-snmp-collector \
-            infrasense-proxmox-collector \
             infrasense-notification-service \
             infrasense-frontend; do
             if systemctl is-active --quiet "${svc}.service" 2>/dev/null; then
@@ -309,7 +301,6 @@ exit 0
     infrasense-ipmi-collector.service \
     infrasense-redfish-collector.service \
     infrasense-snmp-collector.service \
-    infrasense-proxmox-collector.service \
     infrasense-notification-service.service \
     infrasense-frontend.service
 

@@ -22,7 +22,7 @@ export interface DeviceOption {
 
   mgmtController: string;
 
-  protocol: 'redfish' | 'ipmi' | 'snmp' | 'ssh' | 'proxmox' | 'agent';
+  protocol: 'redfish' | 'ipmi' | 'snmp' | 'ssh' | 'agent';
 
   defaultPort: number;
 
@@ -33,32 +33,32 @@ export interface DeviceOption {
 export const DEVICE_OPTIONS: DeviceOption[] = [
 
   // Dell
-
-  { value: 'dell_idrac9_redfish',  label: 'Dell iDRAC9 (Redfish)',  vendor: 'Dell',      mgmtController: 'iDRAC9',   protocol: 'redfish', defaultPort: 443 },
-
-  { value: 'dell_idrac8_ipmi',     label: 'Dell iDRAC8 (IPMI)',     vendor: 'Dell',      mgmtController: 'iDRAC8',   protocol: 'ipmi',    defaultPort: 623 },
-
-  { value: 'dell_idrac7_ipmi',     label: 'Dell iDRAC7 (IPMI)',     vendor: 'Dell',      mgmtController: 'iDRAC7',   protocol: 'ipmi',    defaultPort: 623 },
+  { value: 'dell_drac5',           label: 'Dell DRAC5 (IPMI)',           vendor: 'Dell',      mgmtController: 'DRAC5',   protocol: 'ipmi',    defaultPort: 623 },
+  { value: 'dell_idrac6',          label: 'Dell iDRAC6 (IPMI)',          vendor: 'Dell',      mgmtController: 'iDRAC6',  protocol: 'ipmi',    defaultPort: 623 },
+  { value: 'dell_idrac7_ipmi',     label: 'Dell iDRAC7 (IPMI)',          vendor: 'Dell',      mgmtController: 'iDRAC7',  protocol: 'ipmi',    defaultPort: 623 },
+  { value: 'dell_idrac8_ipmi',     label: 'Dell iDRAC8 (IPMI)',          vendor: 'Dell',      mgmtController: 'iDRAC8',  protocol: 'ipmi',    defaultPort: 623 },
+  { value: 'dell_idrac8',          label: 'Dell iDRAC8 (Redfish)',       vendor: 'Dell',      mgmtController: 'iDRAC8',  protocol: 'redfish', defaultPort: 443 },
+  { value: 'dell_idrac9_ipmi',     label: 'Dell iDRAC9 (IPMI)',          vendor: 'Dell',      mgmtController: 'iDRAC9',  protocol: 'ipmi',    defaultPort: 623 },
+  { value: 'dell_idrac9_redfish',  label: 'Dell iDRAC9 (Redfish)',       vendor: 'Dell',      mgmtController: 'iDRAC9',  protocol: 'redfish', defaultPort: 443 },
+  { value: 'dell_idrac10',         label: 'Dell iDRAC10 (Redfish)',      vendor: 'Dell',      mgmtController: 'iDRAC10', protocol: 'redfish', defaultPort: 443 },
 
   // HPE
-
-  { value: 'hpe_ilo5_redfish',     label: 'HPE iLO5 (Redfish)',     vendor: 'HPE',       mgmtController: 'iLO5',     protocol: 'redfish', defaultPort: 443 },
-
-  { value: 'hpe_ilo4_ipmi',        label: 'HPE iLO4 (IPMI)',        vendor: 'HPE',       mgmtController: 'iLO4',     protocol: 'ipmi',    defaultPort: 623 },
-
-  { value: 'hpe_ilo3_ipmi',        label: 'HPE iLO3 (IPMI)',        vendor: 'HPE',       mgmtController: 'iLO3',     protocol: 'ipmi',    defaultPort: 623 },
+  { value: 'hpe_ilo3_ipmi',        label: 'HPE iLO3 (IPMI)',             vendor: 'HPE',       mgmtController: 'iLO3',    protocol: 'ipmi',    defaultPort: 623 },
+  { value: 'hpe_ilo4_ipmi',        label: 'HPE iLO4 (IPMI)',             vendor: 'HPE',       mgmtController: 'iLO4',    protocol: 'ipmi',    defaultPort: 623 },
+  { value: 'hpe_ilo4',             label: 'HPE iLO4 (Redfish)',          vendor: 'HPE',       mgmtController: 'iLO4',    protocol: 'redfish', defaultPort: 443 },
+  { value: 'hpe_ilo5_redfish',     label: 'HPE iLO5 (Redfish)',          vendor: 'HPE',       mgmtController: 'iLO5',    protocol: 'redfish', defaultPort: 443 },
+  { value: 'hpe_ilo5_ipmi',        label: 'HPE iLO5 (IPMI)',             vendor: 'HPE',       mgmtController: 'iLO5',    protocol: 'ipmi',    defaultPort: 623 },
+  { value: 'hpe_ilo6',             label: 'HPE iLO6 (Redfish)',          vendor: 'HPE',       mgmtController: 'iLO6',    protocol: 'redfish', defaultPort: 443 },
 
   // Lenovo
-
-  { value: 'lenovo_xcc_redfish',   label: 'Lenovo XClarity (Redfish)', vendor: 'Lenovo', mgmtController: 'XCC',      protocol: 'redfish', defaultPort: 443 },
-
-  { value: 'lenovo_xcc_ipmi',      label: 'Lenovo XClarity (IPMI)',    vendor: 'Lenovo', mgmtController: 'XCC',      protocol: 'ipmi',    defaultPort: 623 },
+  { value: 'lenovo_imm',           label: 'Lenovo IMM (IPMI)',           vendor: 'Lenovo',    mgmtController: 'IMM',     protocol: 'ipmi',    defaultPort: 623 },
+  { value: 'lenovo_xcc_redfish',   label: 'Lenovo XCC (Redfish)',        vendor: 'Lenovo',    mgmtController: 'XCC',     protocol: 'redfish', defaultPort: 443 },
+  { value: 'lenovo_xcc_ipmi',      label: 'Lenovo XCC (IPMI)',           vendor: 'Lenovo',    mgmtController: 'XCC',     protocol: 'ipmi',    defaultPort: 623 },
 
   // Cisco
-
-  { value: 'cisco_cimc_redfish',   label: 'Cisco CIMC (Redfish)',   vendor: 'Cisco',     mgmtController: 'CIMC',     protocol: 'redfish', defaultPort: 443 },
-
-  { value: 'cisco_cimc_ipmi',      label: 'Cisco CIMC (IPMI)',      vendor: 'Cisco',     mgmtController: 'CIMC',     protocol: 'ipmi',    defaultPort: 623 },
+  { value: 'cisco_cimc_ipmi',      label: 'Cisco CIMC (IPMI)',           vendor: 'Cisco',     mgmtController: 'CIMC',    protocol: 'ipmi',    defaultPort: 623 },
+  { value: 'cisco_cimc_redfish',   label: 'Cisco CIMC (Redfish)',        vendor: 'Cisco',     mgmtController: 'CIMC',    protocol: 'redfish', defaultPort: 443 },
+  { value: 'cisco_ucs',            label: 'Cisco UCS Manager',           vendor: 'Cisco',     mgmtController: 'UCSM',    protocol: 'redfish', defaultPort: 443 },
 
   // Huawei
 
@@ -75,10 +75,9 @@ export const DEVICE_OPTIONS: DeviceOption[] = [
   { value: 'ericsson_ssh',         label: 'Ericsson (SSH)',         vendor: 'Ericsson',  mgmtController: 'SSH',      protocol: 'ssh',     defaultPort: 22 },
 
   // Supermicro
-
-  { value: 'supermicro_redfish',   label: 'Supermicro BMC (Redfish)', vendor: 'Supermicro', mgmtController: 'BMC',   protocol: 'redfish', defaultPort: 443 },
-
-  { value: 'supermicro_ipmi',      label: 'Supermicro IPMI',          vendor: 'Supermicro', mgmtController: 'BMC',   protocol: 'ipmi',    defaultPort: 623 },
+  { value: 'supermicro_old',       label: 'Supermicro X9/X10 (IPMI)',   vendor: 'Supermicro', mgmtController: 'BMC',    protocol: 'ipmi',    defaultPort: 623 },
+  { value: 'supermicro_ipmi',      label: 'Supermicro X11/X12 (IPMI)', vendor: 'Supermicro', mgmtController: 'BMC',    protocol: 'ipmi',    defaultPort: 623 },
+  { value: 'supermicro_redfish',   label: 'Supermicro BMC (Redfish)',  vendor: 'Supermicro', mgmtController: 'BMC',    protocol: 'redfish', defaultPort: 443 },
 
   // Fujitsu
 
@@ -112,10 +111,6 @@ export const DEVICE_OPTIONS: DeviceOption[] = [
 
   { value: 'generic_ups_snmp',     label: 'Generic UPS (SNMP)',     vendor: 'Generic',   mgmtController: 'SNMP',    protocol: 'snmp',    defaultPort: 161 },
 
-  // Virtualization
-
-  { value: 'proxmox',              label: 'Proxmox Node',           vendor: 'Proxmox',   mgmtController: 'Proxmox', protocol: 'proxmox', defaultPort: 8006 },
-
   // OS Agent
 
   { value: 'linux_agent',          label: 'Linux (node_exporter)',  vendor: 'Linux',     mgmtController: 'Agent',   protocol: 'agent',   defaultPort: 9100 },
@@ -148,8 +143,6 @@ interface FormValues {
 
   auth_protocol: string; auth_password: string; priv_protocol: string; priv_password: string; snmp_port: string;
 
-  proxmox_ip: string; proxmox_token_id: string; proxmox_token_secret: string; proxmox_port: string; proxmox_node: string;
-
   agent_ip: string; agent_port: string;
 
 }
@@ -175,8 +168,6 @@ const AddDeviceModal: React.FC<AddDeviceModalProps> = ({ onClose, onSuccess }) =
 
   const [showSshPw, setShowSshPw] = useState(false);
 
-  const [showProxmoxSecret, setShowProxmoxSecret] = useState(false);
-
 
 
   const { register, handleSubmit, watch, setValue, formState: { errors, isSubmitting }, setError } = useForm<FormValues>({
@@ -198,8 +189,6 @@ const AddDeviceModal: React.FC<AddDeviceModalProps> = ({ onClose, onSuccess }) =
       snmp_version: 'v2c', community_string: 'public', snmp_username: '',
 
       auth_protocol: 'SHA', auth_password: '', priv_protocol: 'AES', priv_password: '', snmp_port: '161',
-
-      proxmox_ip: '', proxmox_token_id: '', proxmox_token_secret: '', proxmox_port: '8006', proxmox_node: '',
 
       agent_ip: '', agent_port: '',
 
@@ -258,8 +247,6 @@ const AddDeviceModal: React.FC<AddDeviceModalProps> = ({ onClose, onSuccess }) =
     let primaryIP = data.ip_address;
 
     if (isBMC) primaryIP = data.bmc_ip || data.ip_address;
-
-    else if (activeProtocol === 'proxmox') primaryIP = data.proxmox_ip || data.ip_address;
 
     else if (activeProtocol === 'agent') primaryIP = data.agent_ip || data.ip_address;
 
@@ -356,14 +343,6 @@ const AddDeviceModal: React.FC<AddDeviceModalProps> = ({ onClose, onSuccess }) =
           });
 
         }
-
-      } else if (protocol === 'proxmox') {
-
-        await saveDeviceCredentials(device.id, {
-
-          protocol: 'proxmox', username: data.proxmox_token_id || undefined, password: data.proxmox_token_secret || undefined,
-
-        });
 
       }
 
@@ -818,58 +797,6 @@ const AddDeviceModal: React.FC<AddDeviceModalProps> = ({ onClose, onSuccess }) =
                 </>
 
               )}
-
-            </fieldset>
-
-          )}
-
-
-
-          {/* ── Proxmox ── */}
-
-          {protocol === 'proxmox' && (
-
-            <fieldset style={s.fieldset}>
-
-              <legend style={s.legend}>Proxmox Configuration</legend>
-
-              <div style={s.row2}>
-
-                <Field label="Proxmox IP *" error={errors.proxmox_ip?.message}>
-
-                  <input style={inp(!!errors.proxmox_ip)} {...register('proxmox_ip', { required: 'Required' })} placeholder="e.g. 192.168.1.50" />
-
-                </Field>
-
-                <Field label="Port"><input style={inp(false)} {...register('proxmox_port')} placeholder="8006" /></Field>
-
-              </div>
-
-              <Field label="Node Name *" error={errors.proxmox_node?.message}>
-
-                <input style={inp(!!errors.proxmox_node)} {...register('proxmox_node', { required: 'Required' })} placeholder="e.g. pve" />
-
-              </Field>
-
-              <Field label="API Token ID *" error={errors.proxmox_token_id?.message}>
-
-                <input style={inp(!!errors.proxmox_token_id)} {...register('proxmox_token_id', { required: 'Required' })} placeholder="user@realm!tokenname" />
-
-              </Field>
-
-              <Field label="API Token Secret *" error={errors.proxmox_token_secret?.message}>
-
-                <div style={s.pwWrap}>
-
-                  <input type={showProxmoxSecret ? 'text' : 'password'} style={{ ...inp(!!errors.proxmox_token_secret), flex: 1 }}
-
-                    {...register('proxmox_token_secret', { required: 'Required' })} autoComplete="new-password" />
-
-                  <button type="button" style={s.eyeBtn} onClick={() => setShowProxmoxSecret((v) => !v)} aria-label="Toggle">{showProxmoxSecret ? '🙈' : '👁'}</button>
-
-                </div>
-
-              </Field>
 
             </fieldset>
 

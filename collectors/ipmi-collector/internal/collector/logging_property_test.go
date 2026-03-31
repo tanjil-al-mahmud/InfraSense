@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"testing"
 	"time"
@@ -95,7 +96,7 @@ func TestProperty33_CollectorLoggingCompleteness(t *testing.T) {
 
 			// Create a mock device
 			device := Device{
-				ID:        deviceID,
+				ID:        fmt.Sprintf("%d", deviceID),
 				Hostname:  hostname,
 				IPAddress: "192.168.1.100",
 				Username:  "admin",
@@ -157,20 +158,23 @@ func TestProperty33_CollectorLoggingCompleteness(t *testing.T) {
 					return false
 				}
 
-				// device_id can be int64 or float64 (JSON number)
-				var logDeviceID int64
+				// device_id may be a JSON number or string
+				expectedID := fmt.Sprintf("%d", deviceID)
+				var gotID string
 				switch v := log.DeviceID.(type) {
 				case float64:
-					logDeviceID = int64(v)
+					gotID = fmt.Sprintf("%.0f", v)
 				case int64:
-					logDeviceID = v
+					gotID = fmt.Sprintf("%d", v)
+				case string:
+					gotID = v
 				default:
 					t.Logf("Log entry %d has invalid device_id type: %T", i, v)
 					return false
 				}
 
-				if logDeviceID != deviceID {
-					t.Logf("Log entry %d device_id mismatch: expected %d, got %d", i, deviceID, logDeviceID)
+				if gotID != expectedID {
+					t.Logf("Log entry %d device_id mismatch: expected %s, got %s", i, expectedID, gotID)
 					return false
 				}
 
@@ -245,7 +249,7 @@ func TestProperty33_CollectorLoggingCompleteness_WithRealCollector(t *testing.T)
 
 			// Create a mock device
 			device := Device{
-				ID:        deviceID,
+				ID:        fmt.Sprintf("%d", deviceID),
 				Hostname:  hostname,
 				IPAddress: "192.168.1.100",
 				Username:  "admin",
@@ -317,7 +321,7 @@ func TestProperty33_CollectorLoggingCompleteness_WithRealCollector(t *testing.T)
 			}
 
 			// Verify retry manager recorded the failure
-			if retryManager.GetFailureCount(deviceID) != 1 {
+			if retryManager.GetFailureCount(fmt.Sprintf("%d", deviceID)) != 1 {
 				t.Logf("Retry manager did not record failure correctly")
 				return false
 			}
@@ -340,7 +344,7 @@ func TestLoggingFormat_ManualVerification(t *testing.T) {
 
 	// Simulate a successful poll
 	device := Device{
-		ID:        123,
+		ID:        "123",
 		Hostname:  "server01",
 		IPAddress: "192.168.1.100",
 	}

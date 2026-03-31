@@ -182,8 +182,7 @@ assert_file_exists "/etc/infrasense/config.yml"
 # ── Test 5: Systemd service units ─────────────────────────────────────────────
 info "--- Test 5: Systemd service units installed ---"
 for svc in infrasense-api infrasense-ipmi-collector infrasense-redfish-collector \
-           infrasense-snmp-collector infrasense-notification-service \
-           infrasense-proxmox-collector; do
+           infrasense-snmp-collector infrasense-notification-service; do
   assert_file_exists "/etc/systemd/system/${svc}.service"
 done
 

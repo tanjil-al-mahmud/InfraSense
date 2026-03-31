@@ -310,6 +310,16 @@ func (c *RedfishCollector) PollDeviceWithRetry(device Device) {
 		} else {
 			backoff := c.retryManager.RecordFailure(device.ID, device.Hostname)
 			c.updateCollectorStatus(device.ID, "unavailable", fmt.Sprintf("Connection failed: %v (retry in %v)", err, backoff), false)
+
+			// Protocol fallback after repeated failures
+			if c.retryManager.GetFailureCount(device.ID) >= 3 {
+				slog.Warn("redfish failed repeatedly; falling back to ipmi",
+					"event", "protocol_fallback",
+					"device_id", device.ID,
+					"from", "redfish",
+					"to", "ipmi")
+				c.setDeviceProtocol(device.ID, "ipmi")
+			}
 		}
 		return
 	}
@@ -835,4 +845,29 @@ func (rm *RetryManager) RecordSuccess(deviceID string) {
 	rm.mutex.Lock()
 	defer rm.mutex.Unlock()
 	delete(rm.states, deviceID)
+}
+
+func (rm *RetryManager) GetFailureCount(deviceID string) int {
+	rm.mutex.RLock()
+	defer rm.mutex.RUnlock()
+	if st, ok := rm.states[deviceID]; ok {
+		return st.failureCount
+	}
+	return 0
+}
+
+func (c *RedfishCollector) setDeviceProtocol(deviceID string, protocol string) {
+	if protocol == "" {
+		return
+	}
+	if _, err := c.db.Exec(
+		`UPDATE devices SET protocol = $1, updated_at = NOW() WHERE id = $2::uuid`,
+		protocol, deviceID,
+	); err != nil {
+		slog.Error("failed to update device protocol",
+			"event", "device_protocol_update_error",
+			"device_id", deviceID,
+			"protocol", protocol,
+			"error", err.Error())
+	}
 }

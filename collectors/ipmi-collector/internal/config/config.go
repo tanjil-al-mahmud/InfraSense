@@ -78,7 +78,7 @@ func LoadConfig(path string) (*Config, error) {
 		cfg.Collector.PollingInterval = "60s"
 	}
 	if cfg.Collector.DeviceReloadInterval == "" {
-		cfg.Collector.DeviceReloadInterval = "5m"
+		cfg.Collector.DeviceReloadInterval = "60s"
 	}
 	if cfg.Collector.Timeout == "" {
 		cfg.Collector.Timeout = "30s"

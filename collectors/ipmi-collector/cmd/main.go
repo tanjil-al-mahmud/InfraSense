@@ -14,7 +14,9 @@ import (
 	"github.com/infrasense/ipmi-collector/internal/collector"
 	"github.com/infrasense/ipmi-collector/internal/config"
 	"github.com/infrasense/ipmi-collector/internal/metrics"
+	"github.com/infrasense/ipmi-collector/internal/queue"
 	_ "github.com/lib/pq"
+	"github.com/nats-io/nats.go"
 )
 
 var logger *slog.Logger
@@ -69,10 +71,28 @@ func main() {
 	metricsWriter.Start()
 	defer metricsWriter.Stop()
 
+	// Optional NATS publisher (durable queue)
+	var publisher *queue.Publisher
+	if natsURL := os.Getenv("NATS_URL"); natsURL != "" {
+		nc, err := nats.Connect(natsURL, nats.Name("ipmi-collector"))
+		if err != nil {
+			logger.Error("failed to connect to NATS", "event", "nats_connect_error", "error", err.Error())
+			os.Exit(1)
+		}
+		defer nc.Close()
+		js, err := nc.JetStream()
+		if err != nil {
+			logger.Error("failed to init JetStream", "event", "nats_js_error", "error", err.Error())
+			os.Exit(1)
+		}
+		publisher = queue.NewPublisher(js)
+	}
+
 	// Create IPMI collector
 	ipmiCollector := collector.NewIPMICollector(
 		db,
 		metricsWriter,
+		publisher,
 		cfg.GetPollingInterval(),
 		cfg.GetDeviceReloadInterval(),
 		cfg.Collector.MaxConcurrent,

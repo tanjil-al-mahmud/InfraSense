@@ -4,7 +4,6 @@ export type DeviceType =
   | 'redfish'
   | 'ipmi'
   | 'snmp'
-  | 'proxmox'
   | 'linux_agent'
   | 'windows_agent';
 

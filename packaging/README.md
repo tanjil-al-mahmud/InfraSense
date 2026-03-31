@@ -55,9 +55,6 @@ GOOS=linux GOARCH=amd64 go build -o packaging/deb/usr/local/bin/infrasense-snmp-
 
 GOOS=linux GOARCH=amd64 go build -o packaging/deb/usr/local/bin/infrasense-notification-service \
     ./notification-service/cmd
-
-GOOS=linux GOARCH=amd64 go build -o packaging/deb/usr/local/bin/infrasense-proxmox-collector \
-    ./collectors/proxmox-collector/cmd
 ```
 
 ### 2. Run the build script

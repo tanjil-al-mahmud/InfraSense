@@ -22,7 +22,6 @@ InfraSense is a comprehensive monitoring and management platform designed specif
   - **SNMP Collector:** Gathers data from SNMP-enabled network switches, routers, and appliances.
   - **IPMI Collector:** Gathers hardware-level metrics (fan speed, temperature, power) from servers securely.
   - **Redfish Collector:** Interacts with modern REST APIs provided by server management interfaces.
-  - **Proxmox Collector:** Extracts virtualization hypervisor metrics via Proxmox API.
 
 ### 4. Storage Layer
 - **Relational Database (PostgreSQL):** Stores user data, system configuration, device configurations, and long-term settings.

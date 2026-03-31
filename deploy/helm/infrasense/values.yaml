@@ -118,18 +118,7 @@ collectors:
         memory: "512Mi"
         cpu: "500m"
 
-  proxmox:
-    enabled: true
-    image: infrasense-proxmox-collector
-    replicas: 1
-    port: 8083
-    resources:
-      requests:
-        memory: "64Mi"
-        cpu: "50m"
-      limits:
-        memory: "512Mi"
-        cpu: "500m"
+
 
   ssh:
     enabled: true

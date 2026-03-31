@@ -1,7 +1,7 @@
 # Multi-stage build for InfraSense API server
 
 # Build stage
-FROM golang:1.24-alpine AS builder
+FROM golang:1.25-alpine AS builder
 
 WORKDIR /build
 
@@ -15,14 +15,16 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Build the binary
+# Build the binaries
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o api-server ./cmd/server/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o ingester ./cmd/ingester/main.go
 
 # Runtime stage
 FROM alpine:3.19
 
 # Install ca-certificates and tzdata
-RUN apk add --no-cache ca-certificates tzdata postgresql-client
+RUN apk add --no-cache ca-certificates tzdata postgresql-client ipmitool && \
+    ln -sf /usr/sbin/ipmitool /usr/bin/ipmitool
 
 # Create non-root user
 RUN addgroup -g 1000 infrasense && \
@@ -32,6 +34,7 @@ WORKDIR /app
 
 # Copy binary from builder
 COPY --from=builder /build/api-server .
+COPY --from=builder /build/ingester .
 
 # Copy migrations
 COPY --from=builder /build/migrations ./migrations

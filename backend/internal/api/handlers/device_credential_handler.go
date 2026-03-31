@@ -48,11 +48,10 @@ func (h *DeviceCredentialHandler) Create(c *gin.Context) {
 		models.ProtocolRedfish: true,
 		models.ProtocolSNMPv2c: true,
 		models.ProtocolSNMPv3:  true,
-		models.ProtocolProxmox: true,
 	}
 	if !validProtocols[req.Protocol] {
 		log.Printf("validation failed: protocol - invalid value '%s'", req.Protocol)
-		response.BadRequest(c, "Invalid protocol. Must be one of: ipmi, redfish, snmp_v2c, snmp_v3, proxmox", "INVALID_PROTOCOL")
+		response.BadRequest(c, "Invalid protocol. Must be one of: ipmi, redfish, snmp_v2c, snmp_v3", "INVALID_PROTOCOL")
 		return
 	}
 

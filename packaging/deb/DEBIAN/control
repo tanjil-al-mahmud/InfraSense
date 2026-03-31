@@ -9,6 +9,6 @@ Depends: postgresql-client, systemd, adduser
 Homepage: https://github.com/infrasense/infrasense-platform
 Description: InfraSense Platform - Infrastructure Monitoring Solution
  InfraSense is a comprehensive infrastructure monitoring platform that
- collects hardware metrics via IPMI, Redfish, SNMP, and Proxmox protocols.
+ collects hardware metrics via IPMI, Redfish, and SNMP protocols.
  It provides real-time alerting, audit logging, and a web-based dashboard
  for managing and monitoring physical and virtual infrastructure.

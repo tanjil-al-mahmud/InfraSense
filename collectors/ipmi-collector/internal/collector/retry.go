@@ -2,10 +2,15 @@ package collector
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"log/slog"
 	"math"
+	"strings"
 	"time"
+
+	"github.com/infrasense/ipmi-collector/internal/queue"
 )
 
 const (
@@ -14,7 +19,7 @@ const (
 )
 
 type RetryState struct {
-	deviceID     int64
+	deviceID     string
 	hostname     string
 	failureCount int
 	lastAttempt  time.Time
@@ -22,16 +27,16 @@ type RetryState struct {
 }
 
 type RetryManager struct {
-	states map[int64]*RetryState
+	states map[string]*RetryState
 }
 
 func NewRetryManager() *RetryManager {
 	return &RetryManager{
-		states: make(map[int64]*RetryState),
+		states: make(map[string]*RetryState),
 	}
 }
 
-func (rm *RetryManager) ShouldRetry(deviceID int64, hostname string) bool {
+func (rm *RetryManager) ShouldRetry(deviceID string, hostname string) bool {
 	state, exists := rm.states[deviceID]
 	if !exists {
 		// First attempt
@@ -42,7 +47,7 @@ func (rm *RetryManager) ShouldRetry(deviceID int64, hostname string) bool {
 	return time.Now().After(state.nextAttempt)
 }
 
-func (rm *RetryManager) RecordFailure(deviceID int64, hostname string) time.Duration {
+func (rm *RetryManager) RecordFailure(deviceID string, hostname string) time.Duration {
 	state, exists := rm.states[deviceID]
 	if !exists {
 		state = &RetryState{
@@ -74,12 +79,12 @@ func (rm *RetryManager) RecordFailure(deviceID int64, hostname string) time.Dura
 	return backoff
 }
 
-func (rm *RetryManager) RecordSuccess(deviceID int64) {
+func (rm *RetryManager) RecordSuccess(deviceID string) {
 	// Reset failure count on success
 	delete(rm.states, deviceID)
 }
 
-func (rm *RetryManager) GetFailureCount(deviceID int64) int {
+func (rm *RetryManager) GetFailureCount(deviceID string) int {
 	state, exists := rm.states[deviceID]
 	if !exists {
 		return 0
@@ -100,7 +105,13 @@ func (c *IPMICollector) PollDevice(device Device) bool {
 	// 1. chassis status → infrasense_ipmi_chassis_power_state
 	chassisMetrics, err := runChassisStatus(ctx, device)
 	if err != nil {
-		c.updateDeviceStatus(device.ID, "unavailable", fmt.Sprintf("chassis status failed: %v", err))
+		slog.Error("IPMI poll failed",
+			"event", "poll_failed",
+			"hostname", device.Hostname,
+			"bmc_ip", device.BMCIPAddress,
+			"step", "chassis status",
+			"error", err.Error())
+		c.updateDeviceStatus(device.ID, "offline", fmt.Sprintf("chassis status failed: %v", err))
 		return false
 	}
 	allMetrics = append(allMetrics, chassisMetrics...)
@@ -108,33 +119,56 @@ func (c *IPMICollector) PollDevice(device Device) bool {
 	// 2. sensor list → infrasense_ipmi_sensor_value
 	sensorMetrics, err := runSensorList(ctx, device)
 	if err != nil {
-		c.updateDeviceStatus(device.ID, "unavailable", fmt.Sprintf("sensor list failed: %v", err))
+		slog.Error("IPMI poll failed",
+			"event", "poll_failed",
+			"hostname", device.Hostname,
+			"bmc_ip", device.BMCIPAddress,
+			"step", "sensor list",
+			"error", err.Error())
+		c.updateDeviceStatus(device.ID, "offline", fmt.Sprintf("sensor list failed: %v", err))
 		return false
 	}
 	allMetrics = append(allMetrics, sensorMetrics...)
 
+	slog.Info("Collected sensors from device",
+		"event", "sensors_collected",
+		"hostname", device.Hostname,
+		"bmc_ip", device.BMCIPAddress,
+		"sensor_count", len(sensorMetrics))
+
 	// 3. sdr → sensor metadata enrichment (no metrics emitted directly)
 	_, err = runSDR(ctx, device)
 	if err != nil {
-		c.updateDeviceStatus(device.ID, "unavailable", fmt.Sprintf("sdr failed: %v", err))
-		return false
+		// Log but don't fail — SDR is supplementary
+		slog.Warn("sdr metadata collection failed (non-fatal)",
+			"event", "sdr_warn",
+			"hostname", device.Hostname,
+			"error", err.Error())
 	}
 
 	// 4. sel list → infrasense_ipmi_sel_entries_total{severity}
 	selMetrics, err := runSELList(ctx, device)
 	if err != nil {
-		c.updateDeviceStatus(device.ID, "unavailable", fmt.Sprintf("sel list failed: %v", err))
-		return false
+		// Log but don't fail — SEL is supplementary
+		slog.Warn("sel list collection failed (non-fatal)",
+			"event", "sel_warn",
+			"hostname", device.Hostname,
+			"error", err.Error())
+	} else {
+		allMetrics = append(allMetrics, selMetrics...)
 	}
-	allMetrics = append(allMetrics, selMetrics...)
 
 	// 5. fru → upsert manufacturer/product/serial into device_inventory
 	if err := runFRU(ctx, device, c.db); err != nil {
-		c.updateDeviceStatus(device.ID, "unavailable", fmt.Sprintf("fru failed: %v", err))
-		return false
+		// Log but don't fail — FRU is supplementary
+		slog.Warn("fru inventory collection failed (non-fatal)",
+			"event", "fru_warn",
+			"hostname", device.Hostname,
+			"error", err.Error())
 	}
 
 	// Push all collected metrics to VictoriaMetrics
+	pushed := 0
 	for _, metric := range allMetrics {
 		if err := c.metricsWriter.WriteMetric(metric.Name, metric.Value, metric.Labels, metric.Timestamp); err != nil {
 			slog.Error("metric write error",
@@ -142,10 +176,94 @@ func (c *IPMICollector) PollDevice(device Device) bool {
 				"device_id", device.ID,
 				"hostname", device.Hostname,
 				"error", err.Error())
+		} else {
+			pushed++
 		}
 	}
 
+	slog.Info("Pushed metrics to VictoriaMetrics",
+		"event", "metrics_pushed",
+		"hostname", device.Hostname,
+		"metric_count", pushed)
+
+	// Publish SEL entries as normalized events (best-effort)
+	if c.publisher != nil {
+		selOutput, err := ExecuteIPMIToolWithPort(ctx, device.BMCIPAddress, device.Port, device.Username, device.Password, "sel", "list")
+		if err == nil {
+			events := normalizeSEL(device.ID, selOutput)
+			if len(events) > 0 {
+				pubCtx, cancel := context.WithTimeout(c.ctx, 5*time.Second)
+				defer cancel()
+				for _, ev := range events {
+					_ = c.publisher.PublishEvent(pubCtx, ev)
+				}
+			}
+		}
+	}
+
+	// Publish metrics to NATS JetStream for durable ingestion
+	if c.publisher != nil && len(allMetrics) > 0 {
+		samples := make([]queue.MetricSample, 0, len(allMetrics))
+		for _, m := range allMetrics {
+			samples = append(samples, queue.MetricSample{
+				Name:      m.Name,
+				Value:     m.Value,
+				Labels:    m.Labels,
+				Timestamp: m.Timestamp,
+			})
+		}
+		pubCtx, cancel := context.WithTimeout(c.ctx, 5*time.Second)
+		defer cancel()
+		_ = c.publisher.PublishMetrics(pubCtx, queue.MetricsBatch{
+			SchemaVersion: "v1",
+			DeviceID:      device.ID,
+			Source:        "ipmi",
+			CollectedAt:   time.Now(),
+			Samples:       samples,
+		})
+	}
+
 	return true
+}
+
+func normalizeSEL(deviceID string, selOutput string) []queue.HardwareEvent {
+	lines := strings.Split(selOutput, "\n")
+	observedAt := time.Now()
+	out := make([]queue.HardwareEvent, 0, len(lines))
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "SEL has no entries") {
+			continue
+		}
+		lower := strings.ToLower(line)
+		sev := "info"
+		switch {
+		case strings.Contains(lower, "critical") || strings.Contains(lower, "non-recoverable") || strings.Contains(lower, "failure"):
+			sev = "critical"
+		case strings.Contains(lower, "warning") || strings.Contains(lower, "non-critical") || strings.Contains(lower, "degraded"):
+			sev = "warning"
+		}
+
+		sum := sha256.Sum256([]byte(line))
+		dedupe := hex.EncodeToString(sum[:])
+
+		out = append(out, queue.HardwareEvent{
+			SchemaVersion:  "v1",
+			DeviceID:       deviceID,
+			ObservedAt:     observedAt,
+			SourceProtocol: "ipmi",
+			Component:      "system",
+			EventType:      "sel",
+			Severity:       sev,
+			Message:        line,
+			Raw: map[string]any{
+				"line": line,
+			},
+			DedupeKey: dedupe,
+		})
+	}
+	return out
 }
 
 // PollDeviceWithRetry polls a device with exponential backoff retry logic
@@ -157,46 +275,51 @@ func (c *IPMICollector) PollDeviceWithRetry(device Device) {
 
 	timestamp := time.Now()
 
-	slog.Info("polling device",
+	slog.Info("Starting IPMI poll for device",
 		"event", "poll_attempt",
-		"device_id", device.ID,
 		"hostname", device.Hostname,
+		"bmc_ip", device.BMCIPAddress,
 		"timestamp", timestamp.Format(time.RFC3339))
 
 	ok := c.PollDevice(device)
 	if !ok {
-		slog.Error("device poll failed",
-			"event", "poll_attempt",
-			"device_id", device.ID,
+		slog.Error("IPMI poll failed for device",
+			"event", "poll_failed",
 			"hostname", device.Hostname,
-			"timestamp", timestamp.Format(time.RFC3339),
-			"result", "error")
+			"bmc_ip", device.BMCIPAddress,
+			"timestamp", timestamp.Format(time.RFC3339))
 
 		// Record failure and get backoff duration
 		backoff := c.retryManager.RecordFailure(device.ID, device.Hostname)
 
-		slog.Warn("device marked unavailable, scheduling retry",
-			"event", "device_unavailable",
-			"device_id", device.ID,
+		// Protocol fallback after repeated failures
+		if c.retryManager.GetFailureCount(device.ID) >= 3 {
+			slog.Warn("ipmi failed repeatedly; falling back to snmp",
+				"event", "protocol_fallback",
+				"device_id", device.ID,
+				"from", "ipmi",
+				"to", "snmp")
+			c.setDeviceProtocol(device.ID, "snmp")
+		}
+
+		slog.Warn("device marked offline, scheduling retry",
+			"event", "device_offline",
 			"hostname", device.Hostname,
+			"bmc_ip", device.BMCIPAddress,
 			"retry_in_seconds", backoff.Seconds())
 
 		return
 	}
 
-	slog.Info("device poll successful",
-		"event", "poll_attempt",
-		"device_id", device.ID,
+	slog.Info("IPMI poll successful",
+		"event", "poll_success",
 		"hostname", device.Hostname,
-		"timestamp", timestamp.Format(time.RFC3339),
-		"result", "success")
+		"bmc_ip", device.BMCIPAddress,
+		"timestamp", timestamp.Format(time.RFC3339))
 
 	// Record success (resets failure count)
 	c.retryManager.RecordSuccess(device.ID)
 
-	// Update device status to healthy
-	c.updateDeviceStatus(device.ID, "healthy", "")
-
-	// Update collector status with success
+	// Update device status to online
 	c.updateCollectorStatusSuccess(device.ID)
 }

@@ -15,6 +15,7 @@ import (
 	"github.com/infrasense/backend/internal/config"
 	"github.com/infrasense/backend/internal/db"
 	"github.com/infrasense/backend/internal/services"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 type Server struct {
@@ -81,6 +82,9 @@ func (s *Server) SetupRoutes() {
 		c.JSON(200, gin.H{"status": "ok", "version": "1.0.0"})
 	})
 
+	// Prometheus metrics endpoint (no auth required)
+	s.router.GET("/metrics", gin.WrapH(promhttp.Handler()))
+
 	// API v1 routes
 	v1 := s.router.Group("/api/v1")
 
@@ -94,6 +98,7 @@ func (s *Server) SetupRoutes() {
 	maintenanceWindowRepo := db.NewMaintenanceWindowRepository(s.db)
 	alertAckRepo := db.NewAlertAcknowledgmentRepository(s.db)
 	collectorRepo := db.NewCollectorStatusRepository(s.db)
+	eventRepo := db.NewHardwareEventRepository(s.db)
 
 	// Initialize services
 	auditService := services.NewAuditService(auditRepo)
@@ -126,6 +131,7 @@ func (s *Server) SetupRoutes() {
 	maintenanceWindowHandler := handlers.NewMaintenanceWindowHandler(maintenanceWindowRepo, auditService)
 	alertHandler := handlers.NewAlertHandler(alertAckRepo, auditService)
 	collectorHandler := handlers.NewCollectorHandler(collectorRepo)
+	eventHandler := handlers.NewEventHandler(eventRepo)
 
 	// Start background collector health monitor
 	s.startCollectorHealthMonitor(collectorRepo)
@@ -172,6 +178,7 @@ func (s *Server) SetupRoutes() {
 			devices.DELETE("/:id/credentials", middleware.RequireAdminOrOperator(), credentialHandler.Delete)
 
 			// Device BMC operations
+			devices.POST("/test-ipmi", middleware.RequireAdminOrOperator(), deviceHandler.TestIPMI)
 			devices.POST("/:id/test-connection", middleware.RequireAdminOrOperator(), deviceHandler.TestConnection)
 			devices.POST("/:id/sync", middleware.RequireAdminOrOperator(), deviceHandler.SyncDevice)
 			devices.POST("/:id/power", middleware.RequireAdminOrOperator(), deviceHandler.PowerControl)
@@ -229,6 +236,17 @@ func (s *Server) SetupRoutes() {
 			collectors.GET("", collectorHandler.List)
 			collectors.GET("/:id", collectorHandler.GetByID)
 		}
+
+		// Hardware Event log routes
+		events := protected.Group("/events")
+		{
+			events.GET("", eventHandler.ListAllEvents)
+			events.GET("/summary", eventHandler.GetEventSummary)
+		}
+
+		// Device-scoped event routes (piggyback on existing devices group)
+		protected.GET("/devices/:id/events", eventHandler.ListDeviceEvents)
+		protected.POST("/devices/:id/events/clear", middleware.RequireAdmin(), eventHandler.ClearDeviceEvents)
 	}
 }
 

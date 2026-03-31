@@ -46,10 +46,7 @@ scrape_configs:
     static_configs:
       - targets: ['snmp-collector:8080']
 
-  # Proxmox Collector
-  - job_name: 'proxmox-collector'
-    static_configs:
-      - targets: ['proxmox-collector:8080']
+
 
   # API Server
   - job_name: 'api-server'

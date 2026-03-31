@@ -23,6 +23,7 @@ const Alerts = React.lazy(() => import('./pages/Alerts'));
 const AlertRules = React.lazy(() => import('./pages/AlertRules'));
 const UserManagement = React.lazy(() => import('./pages/UserManagement'));
 const UserProfile = React.lazy(() => import('./pages/UserProfile'));
+const EventLog = React.lazy(() => import('./pages/EventLog'));
 
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
   constructor(props: { children: React.ReactNode }) {
@@ -82,6 +83,7 @@ const BASE_NAV_LINKS = [
   { to: '/devices', label: 'Devices', end: false },
   { to: '/alerts', label: 'Alerts', end: false },
   { to: '/alert-rules', label: 'Alert Rules', end: false },
+  { to: '/events', label: 'Event Log', end: false },
 ] as const;
 
 const EXTERNAL_NAV_LINKS = [
@@ -236,6 +238,7 @@ const AppRoutes: React.FC = () => (
           <Route path="/devices/:id" element={<DeviceDetail />} />
           <Route path="/alerts" element={<Alerts />} />
           <Route path="/alert-rules" element={<AlertRules />} />
+          <Route path="/events" element={<EventLog />} />
           <Route path="/users" element={<UserManagement />} />
           <Route path="/profile" element={<UserProfile />} />
         </Route>
